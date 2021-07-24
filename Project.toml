@@ -1,0 +1,19 @@
+name = "GroupedArrays"
+uuid = "6407cd72-fade-4a84-8a1e-56e431fc1533"
+authors = ["matthieugomez <gomez.matthieu@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
+
+[compat]
+DataAPI = "1"
+
+
+[extras]
+CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
+PooledArrays = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test", "CategoricalArrays", "PooledArrays"]

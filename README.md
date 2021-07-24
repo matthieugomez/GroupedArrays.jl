@@ -8,12 +8,29 @@ The package is registered in the [`General`](https://github.com/JuliaRegistries/
 ## Motivation
 `GroupedArray` returns an `AbstractArray` with integers corresponding to each group.
 
-`GroupedArray` can be used to combine multiple vectors
 ```julia
 using GroupedArrays
-p1 = repeat(["a", "b", "c"], inner = 2)
+p1 = repeat(["a", "b"], inner = 3)
 g = GroupedArray(p1)
+# 6-element GroupedArray{Int64, 1}:
+#  1
+#  1
+#  1
+#  2
+#  2
+#  2
+```
 
+`GroupedArray` can be used to compute groups across multiple vectors:
+
+```julia
 p2 = repeat(["d", "e"], outer = 3)
 g = GroupedArray(p1, p2)
+# 6-element GroupedArray{Int64, 1}:
+#  1
+#  2
+#  1
+#  3
+#  4
+#  3
 ```

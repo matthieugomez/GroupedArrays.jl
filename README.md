@@ -37,4 +37,4 @@ g = GroupedArray(p1, p2)
 ```
 
 ## See also
-[PooledArrays](https://github.com/JuliaData/PooledArrays.jl/blob/main/src/PooledArrays.jl) 
+`GroupedArrays`can be seen as [PooledArrays](https://github.com/JuliaData/PooledArrays.jl/blob/main/src/PooledArrays.jl) for integer/missing values

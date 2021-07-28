@@ -14,7 +14,7 @@ Base.LinearIndices(g::GroupedArray) = axes(g.refs, 1)
 Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number) where {R}
 	@boundscheck checkbounds(g, i)
 	@inbounds x = g.refs[i]
-	x > 0 ? x : missing
+	x == 0 ? missing : x
 end
 Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Missing,  i::Number)
 	@boundscheck checkbounds(g, i)

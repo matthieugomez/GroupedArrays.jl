@@ -59,5 +59,10 @@ g = GroupedArray(PooledArray(p1_missing), p2)
 @test g[1] === missing
 
 
+using DataAPI
+refs = DataAPI.refarray(g)
+pools = DataAPI.refpool(g)
+@test all(pools[refs] .=== g)
+
 
 

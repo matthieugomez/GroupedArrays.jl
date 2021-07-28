@@ -133,13 +133,13 @@ end
 
 # Data API
 DataAPI.refarray(g::GroupedArray) = g.refs
-struct GroupedRefPool{T} <: AbstractVector{T}
+struct GroupedRefPool{T} <: AbstractVector{Union{T, Missing}}
 	n::Int
 end
-Base.size(x::GroupedRefPool{T}) where {T} = (x.n + (T >: Missing),)
-Base.axes(x::GroupedRefPool{T}) where {T} = ((T >: Missing ? 0 : 1):x.n,)
+Base.size(x::GroupedRefPool{T}) where {T} = (x.n + 1,)
+Base.axes(x::GroupedRefPool{T}) where {T} = (0:x.n,)
 Base.IndexStyle(::Type{<: GroupedRefPool}) = Base.IndexLinear()
-Base.@propagate_inbounds function Base.getindex(x::GroupedRefPool, i::Int)
+Base.@propagate_inbounds function Base.getindex(x::GroupedRefPool, i::Integer)
     @boundscheck checkbounds(x, i)
     i > 0 ? i : missing
 end

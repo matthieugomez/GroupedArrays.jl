@@ -20,7 +20,7 @@ g = GroupedArray(p)
 #  2
 #   missing
 ```
-Internally, a `GroupedArray` is stored as a vector of Integers (where 0 corresponds to `missing`).
+Internally, a `GroupedArray` is stored as a vector of Integers, where 0 corresponds to `missing`.
 
 `GroupedArray` can be used to compute groups across multiple vectors:
 ```julia

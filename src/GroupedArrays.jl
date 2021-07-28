@@ -2,34 +2,24 @@ module GroupedArrays
 
 using DataAPI
 
-mutable struct GroupedArray{T <: Union{Integer, Missing}, N} <: AbstractArray{T, N}
+mutable struct GroupedArray{T <: Integer, N} <: AbstractArray{Union{T, Missing}, N}
 	refs::Array{T, N}   # refs must be between 0 and n. 0 means missing
 	n::Int              # Number of potential values (= maximum(refs))
 end
 Base.size(g::GroupedArray) = size(g.refs)
 Base.axes(g::GroupedArray) = axes(g.refs)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
-Base.LinearIndices(x::GroupedArray) = axes(g.refs, 1)
-Base.@propagate_inbounds function Base.getindex(g::GroupedArray{<: Integer}, i::Number)
-	@boundscheck checkbounds(g, i)
-	@inbounds x = g.refs[i]
-end
-Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number)
+Base.LinearIndices(g::GroupedArray) = axes(g.refs, 1)
+
+Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number) where {R}
 	@boundscheck checkbounds(g, i)
 	@inbounds x = g.refs[i]
 	x > 0 ? x : missing
 end
 
-
-Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{<: Integer}, x::Number, i::Number)
+Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Missing,  i::Number)
 	@boundscheck checkbounds(g, i)
-	x <= 0 && throw(ArgumentError("The number x must be positive"))
-	x > g.n && (g.n = x)
-	@inbounds g.refs[i] = x
-end
-Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{Union{<:Integer, Missing}}, x::Missing,  i::Number)
-	@boundscheck checkbounds(g, i)
-	g[i] = 0
+	@inbounds g.refs[i] = 0
 end
 Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Number,  i::Number)
 	@boundscheck checkbounds(g, i)
@@ -41,28 +31,27 @@ end
 # Constructor
 GroupedArray(xs...) = GroupedArray{Int}(xs...)
 
-
-function GroupedArray{R}(xs::GroupedArray{V, N}) where {R, V, N}
-	GroupedArray{R, N}(convert(Array{r, N}, xs.refs), r.n)
+function GroupedArray{R}(g::GroupedArray{T, N}) where {R, T, N}
+	GroupedArray{R, N}(convert(Array{R, N}, g.refs), g.n)
 end
 
 function GroupedArray{R}(xs::AbstractArray) where {R}
 	_group(DataAPI.refarray(xs), DataAPI.refpool(xs), R)
 end
 
-function _group(xs, ::Nothing, r::Type)
-	refs = Array{r}(undef, size(xs))
-	invpool = Dict{eltype(xs), r}()
+function _group(xs, ::Nothing, R::Type)
+	refs = Array{R}(undef, size(xs))
+	invpool = Dict{eltype(xs), R}()
 	has_missing = false
-	n = r(0)
-	i = r(0)
+	n = zero(R)
+	i = 0
 	@inbounds for x in xs
 		i += 1
 		if x === missing
-			refs[i] = 0
+			refs[i] = zero(0)
 			has_missing = true
 		else
-			lbl = get(invpool, x, r(0))
+			lbl = get(invpool, x, zero(R))
 			if !iszero(lbl)
 				refs[i] = lbl
 			else
@@ -72,12 +61,12 @@ function _group(xs, ::Nothing, r::Type)
 			end
 		end
 	end
-	return GroupedArray{has_missing ? Union{r, Missing} : r, ndims(xs)}(refs, n)
+	return GroupedArray{R, ndims(xs)}(refs, n)
 end
 
-function _group(ra, rp, r::Type)
-	refs = Array{r}(undef, size(ra))
-	hashes = Array{r}(undef, length(rp))
+function _group(ra, rp, R::Type)
+	refs = Array{R}(undef, size(ra))
+	hashes = Array{R}(undef, length(rp))
 	firp = firstindex(rp)
 	n = 0
 	has_missing = false
@@ -94,7 +83,7 @@ function _group(ra, rp, r::Type)
 	@inbounds for i in eachindex(refs)
 		refs[i] = hashes[ra[i+fira-1]-firp+1]
 	end
-	return GroupedArray{has_missing ? Union{r, Missing} : r, ndims(refs)}(refs, n)
+	return GroupedArray{R, ndims(refs)}(refs, n)
 end
 
 function GroupedArray{R}(args...) where {R}
@@ -118,10 +107,10 @@ function combine!(g1::GroupedArray, g2::GroupedArray)
 end
 
 # An in-place version of _group() that relabels the refs
-function factorize!(g::GroupedArray{T, N}, r::Type) where {T, N}
-    refs = convert(Array{r, N}, g.refs)
-    invpool = zeros(r, g.n)
-    n = zero(r)
+function factorize!(g::GroupedArray{T, N}, R::Type) where {T, N}
+    refs = convert(Array{R, N}, g.refs)
+    invpool = zeros(R, g.n)
+    n = zero(R)
     i = 0
     @inbounds for x in refs
         i += 1
@@ -136,7 +125,7 @@ function factorize!(g::GroupedArray{T, N}, r::Type) where {T, N}
             end
         end
     end
-    return GroupedArray{r, N}(refs, n)
+    return GroupedArray{R, N}(refs, n)
 end
 
 

@@ -6,7 +6,7 @@ The package is registered in the [`General`](https://github.com/JuliaRegistries/
 `] add GroupedArrays`.
 
 ## Motivation
-`GroupedArray` returns an `AbstractArray` with integers corresponding to each group (except for `missing`).
+`GroupedArray` returns an `AbstractArray` with integers corresponding to each group (or a `missing` for groups with `missing`).
 
 ```julia
 using GroupedArrays
@@ -20,6 +20,7 @@ g = GroupedArray(p)
 #  2
 #   missing
 ```
+Internally, a `GroupedArray` is stored as a vector of Integers, with 0 interpreted as `missing`.
 
 `GroupedArray` can be used to compute groups across multiple vectors:
 ```julia

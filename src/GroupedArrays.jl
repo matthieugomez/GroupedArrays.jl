@@ -16,7 +16,6 @@ Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number) wher
 	@inbounds x = g.refs[i]
 	x > 0 ? x : missing
 end
-
 Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Missing,  i::Number)
 	@boundscheck checkbounds(g, i)
 	@inbounds g.refs[i] = 0
@@ -29,10 +28,32 @@ Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Number,  i:
 end
 
 # Constructor
-GroupedArray(xs...) = GroupedArray{Int}(xs...)
+GroupedArray(xs...; kwargs...) = GroupedArray{Int}(xs...; kwargs...)
 
-function GroupedArray{R}(g::GroupedArray{T, N}) where {R, T, N}
-	GroupedArray{R, N}(convert(Array{R, N}, g.refs), g.n)
+function GroupedArray{R}(g::GroupedArray{T, N}; factorize = false) where {R, T, N}
+	refs = convert(Array{R, N}, g.refs)
+	if !factorize
+		return GroupedArray{R, N}(refs, g.n)
+	else
+		#relabel refs
+		invpool = zeros(R, g.n)
+		n = zero(R)
+		i = 0
+		@inbounds for x in refs
+		    i += 1
+		    if !iszero(x)
+		        lbl = invpool[x]
+		        if !iszero(lbl)
+		            refs[i] = lbl
+		        else
+		            n += 1
+		            refs[i] = n
+		            invpool[x] = n
+		        end
+		    end
+		end
+		return GroupedArray{R, N}(refs, n)
+	end
 end
 
 function GroupedArray{R}(xs::AbstractArray) where {R}
@@ -94,7 +115,7 @@ function GroupedArray{R}(args...) where {R}
             "cannot match array of size $(size(g1)) with array of size $(size(gj))"))
 		combine!(g1, gj)
 	end
-	factorize!(g1, R)
+	GroupedArray{R}(g1; factorize = true)
 end
 
 function combine!(g1::GroupedArray, g2::GroupedArray)
@@ -106,27 +127,6 @@ function combine!(g1::GroupedArray, g2::GroupedArray)
 	return g1
 end
 
-# An in-place version of _group() that relabels the refs
-function factorize!(g::GroupedArray{T, N}, R::Type) where {T, N}
-    refs = convert(Array{R, N}, g.refs)
-    invpool = zeros(R, g.n)
-    n = zero(R)
-    i = 0
-    @inbounds for x in refs
-        i += 1
-        if !iszero(x)
-            lbl = invpool[x]
-            if !iszero(lbl)
-                refs[i] = lbl
-            else
-                n += 1
-                refs[i] = n
-                invpool[x] = n
-            end
-        end
-    end
-    return GroupedArray{R, N}(refs, n)
-end
 
 
 

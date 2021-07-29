@@ -28,6 +28,18 @@ g1 = GroupedArray(p1_missing)
 @test g1[1] === missing
 @test g1.refs[1] === 0
 
+
+
+p1_missing = repeat([missing, -5, -10, 100, -300], inner = 2)
+g1 = GroupedArray(p1_missing)
+@test eltype(g1) <: Union{Int, Missing}
+@test size(g1) == (10,)
+@test length(g1) == 10
+@test g1[1] === missing
+@test g1.refs[1] === 0
+@test g1[end] === g1[end-1]
+
+
 p1_missing = repeat([missing, "a", "b", "c", "c"], inner = 2)
 g1 = GroupedArray(p1_missing)
 @test eltype(g1) == Union{Int, Missing}
@@ -64,5 +76,6 @@ refs = DataAPI.refarray(g)
 pools = DataAPI.refpool(g)
 @test all(pools[refs] .=== g)
 
+@test all(DataAPI.refvalue(g, refs[i]) === g[i] for i in 1:length(g))
 
 

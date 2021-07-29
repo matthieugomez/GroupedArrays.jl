@@ -39,17 +39,40 @@ function GroupedArray{R}(xs::AbstractArray) where {R}
 	_group(DataAPI.refarray(xs), DataAPI.refpool(xs), R)
 end
 
-function _group(xs, ::Nothing, R::Type)
+
+function _group(xs::AbstractArray{<:Union{Integer, Missing}}, ::Nothing, R::Type)
+	min, max = minimum(skipmissing(xs)), maximum(skipmissing(xs))
 	refs = Array{R}(undef, size(xs))
-	invpool = Dict{eltype(xs), R}()
-	has_missing = false
+	invpool = zeros(R, max - min + 1)
 	n = zero(R)
 	i = 0
 	@inbounds for x in xs
 		i += 1
 		if x === missing
-			refs[i] = zero(0)
-			has_missing = true
+			refs[i] = zero(R)
+		else
+			lbl = invpool[x - min + 1]
+			if !iszero(lbl)
+				refs[i] = lbl
+			else
+				n += 1
+				invpool[x - min + 1] = n
+				refs[i] = n
+			end
+		end
+	end
+	return GroupedArray{R, ndims(refs)}(refs, n)
+end
+
+function _group(xs, ::Nothing, R::Type)
+	refs = Array{R}(undef, size(xs))
+	invpool = Dict{eltype(xs), R}()
+	n = zero(R)
+	i = 0
+	@inbounds for x in xs
+		i += 1
+		if x === missing
+			refs[i] = zero(R)
 		else
 			lbl = get(invpool, x, zero(R))
 			if !iszero(lbl)
@@ -64,16 +87,15 @@ function _group(xs, ::Nothing, R::Type)
 	return GroupedArray{R, ndims(xs)}(refs, n)
 end
 
+
 function _group(ra, rp, R::Type)
 	refs = Array{R}(undef, size(ra))
-	hashes = Array{R}(undef, length(rp))
+	hashes = Vector{R}(undef, length(rp))
 	firp = firstindex(rp)
 	n = 0
-	has_missing = false
-	for i in eachindex(hashes)
+	@inbounds for i in eachindex(hashes)
 		if rp[i+firp-1] === missing
 			hashes[i] = 0
-			has_missing = true
 		else
 			n += 1
 			hashes[i] = n
@@ -145,9 +167,8 @@ Base.@propagate_inbounds function Base.getindex(x::GroupedRefPool, i::Integer)
 end
 Base.LinearIndices(x::GroupedRefPool) = axes(x, 1)
 DataAPI.refpool(g::GroupedArray{T}) where {T} = GroupedRefPool{T}(g.n)
-Base.@propagate_inbounds function DataAPI.refvalue(g::GroupedArray, i::Integer)
-	@boundscheck checkbounds(x, i)
-	i > 0 ? x : missing
+Base.@propagate_inbounds function DataAPI.refvalue(g::GroupedArray, ref::Integer)
+	ref > 0 ? ref : missing
 end
 
 export GroupedArray

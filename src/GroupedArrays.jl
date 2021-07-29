@@ -36,11 +36,19 @@ function GroupedArray{R}(g::GroupedArray{T, N}) where {R, T, N}
 end
 
 function GroupedArray{R}(xs::AbstractArray) where {R}
-	_group(DataAPI.refarray(xs), DataAPI.refpool(xs), R)
+	refarray = DataAPI.refarray(xs)
+	refpool = DataAPI.refpool(xs)
+	if refpool !== nothing
+		# When invrefpool is defined, values are necessarily unique
+		if DataAPI.invrefpool(xs) !== nothing || allunique(refpool)
+			return _group(refarray, refpool, R)
+		end
+	end
+	return _group(xs, R)
 end
 
 
-function _group(xs::AbstractArray{<:Union{Integer, Missing}}, ::Nothing, R::Type)
+function _group(xs::AbstractArray{<:Union{Integer, Missing}}, R::Type)
 	min, max = minimum(skipmissing(xs)), maximum(skipmissing(xs))
 	refs = Array{R}(undef, size(xs))
 	invpool = zeros(R, max - min + 1)
@@ -64,7 +72,7 @@ function _group(xs::AbstractArray{<:Union{Integer, Missing}}, ::Nothing, R::Type
 	return GroupedArray{R, ndims(refs)}(refs, n)
 end
 
-function _group(xs, ::Nothing, R::Type)
+function _group(xs, R::Type)
 	refs = Array{R}(undef, size(xs))
 	invpool = Dict{eltype(xs), R}()
 	n = zero(R)
@@ -155,6 +163,11 @@ end
 
 # Data API
 DataAPI.refarray(g::GroupedArray) = g.refs
+DataAPI.levels(g::GroupedArray) = 1:g.n
+Base.@propagate_inbounds function DataAPI.refvalue(g::GroupedArray, ref::Integer)
+	ref > 0 ? ref : missing
+end
+# refpool is such that refpool[refarray[i]] = x
 struct GroupedRefPool{T} <: AbstractVector{Union{T, Missing}}
 	n::Int
 end
@@ -166,10 +179,32 @@ Base.@propagate_inbounds function Base.getindex(x::GroupedRefPool, i::Integer)
     i > 0 ? i : missing
 end
 Base.LinearIndices(x::GroupedRefPool) = axes(x, 1)
+Base.allunique(x::GroupedRefPool) = true
 DataAPI.refpool(g::GroupedArray{T}) where {T} = GroupedRefPool{T}(g.n)
-Base.@propagate_inbounds function DataAPI.refvalue(g::GroupedArray, ref::Integer)
-	ref > 0 ? ref : missing
+# invrefpool is such that invrefpool[refpool[x]] = x. Basically, it gives the index in the pool (so the ref level) corresponding to each element of refpool
+# so it should be missing -> 0 and i -> i for 1 ≤ i ≤ g.n
+struct GroupedInvRefPool{T}
+	n::Int
 end
+@inline Base.haskey(x::GroupedInvRefPool, v::Missing) = true
+@inline Base.haskey(x::GroupedInvRefPool, v::Integer) = (v >= 1) & (v <= x.n)
+@inline Base.getindex(x::GroupedInvRefPool{T}, v::Missing) where {T} = zero(T)
+@inline function Base.getindex(x::GroupedInvRefPool, v::Integer)
+	@boundscheck (v >= 1) & (v <= x.n)
+	v
+end
+@inline Base.get(x::GroupedInvRefPool{T}, v::Missing, default) where {T} = zero(T)
+@inline function Base.get(x::GroupedInvRefPool{T}, v::Integer, default) where {T}
+	if (v >= 1) & (v <= x.n)
+		v
+	else
+		default
+	end
+end
+DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.n)
+
+
+
 
 export GroupedArray
 end # module

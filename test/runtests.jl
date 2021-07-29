@@ -74,8 +74,16 @@ g = GroupedArray(PooledArray(p1_missing), p2)
 using DataAPI
 refs = DataAPI.refarray(g)
 pools = DataAPI.refpool(g)
+invrefpools = DataAPI.invrefpool(g)
 @test all(pools[refs] .=== g)
-
 @test all(DataAPI.refvalue(g, refs[i]) === g[i] for i in 1:length(g))
 
+for x in eachindex(pools)
+	@test invrefpools[pools[x]] == x
+end
+
+pools[invrefpools[missing]] == missing
+for ix in 1:g.n
+	pools[invrefpools[ix]] == ix
+end
 

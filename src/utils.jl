@@ -1,3 +1,5 @@
+# This code is taken from DataFrames.jl/src/groupeddataframe/utils.jl
+
 
 # "kernel" functions for hashrows()
 # adjust row hashes by the hashes of column elements
@@ -446,43 +448,3 @@ function row_group_slots(cols::NTuple{N, AbstractVector},
     end
     return ngroups, UInt[], Int[], sort
 end
-
-
-# Return a 3-tuple of a permutation that sorts rows into groups,
-# and the positions of the first and last rows in each group in that permutation
-# `groups` must contain group indices in 0:ngroups
-# Rows with group index 0 are skipped (used when skipmissing=true)
-# Partly uses the code of Wes McKinney's groupsort_indexer in pandas (file: src/groupby.pyx).
-function compute_indices(groups::AbstractVector{<:Integer}, ngroups::Integer)
-    # count elements in each group
-    stops = zeros(Int, ngroups+1)
-    @inbounds for gix in groups
-        stops[gix+1] += 1
-    end
-
-    # group start positions in a sorted table
-    starts = Vector{Int}(undef, ngroups+1)
-    if length(starts) > 0
-        starts[1] = 1
-        @inbounds for i in 1:ngroups
-            starts[i+1] = starts[i] + stops[i]
-        end
-    end
-
-    # define row permutation that sorts them into groups
-    rperm = Vector{Int}(undef, length(groups))
-    copyto!(stops, starts)
-    @inbounds for (i, gix) in enumerate(groups)
-        rperm[stops[gix+1]] = i
-        stops[gix+1] += 1
-    end
-    stops .-= 1
-
-    # When skipmissing=true was used, group 0 corresponds to missings to drop
-    # Otherwise it's empty
-    popfirst!(starts)
-    popfirst!(stops)
-
-    return rperm, starts, stops
-end
-

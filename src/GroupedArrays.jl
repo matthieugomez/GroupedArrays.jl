@@ -6,7 +6,7 @@ include("spawn.jl")
 include("utils.jl")
 mutable struct GroupedArray{N} <: AbstractArray{Union{Int, Missing}, N}
 	refs::Array{Int, N}   # refs must be between 0 and n. 0 means missing
-	ngroups::Int          # Number of potential values (<= maximum(refs))
+	ngroups::Int          # Number of potential values (== maximum(refs))
 end
 Base.size(g::GroupedArray) = size(g.refs)
 Base.axes(g::GroupedArray) = axes(g.refs)

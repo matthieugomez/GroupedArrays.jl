@@ -1,8 +1,6 @@
 using Test, GroupedArrays
 
 p1 = repeat(1:5, inner = 2)
-p1_missing = repeat([missing, 1, 2, 3, 4], inner = 2)
-p2 = repeat(1:5, outer = 2)
 
 
 g1 = GroupedArray(p1)
@@ -16,8 +14,6 @@ g1 = GroupedArray(p1)
 g1[1] = 10
 @test g1.n == 10
 
-g2 = GroupedArray{UInt16}(g1)
-@test eltype(g2) <: Union{UInt16, Missing}
 
 
 p1_missing = repeat([missing, 1, 2, 3, 4], inner = 2)
@@ -27,7 +23,7 @@ g1 = GroupedArray(p1_missing)
 @test length(g1) == 10
 @test g1[1] === missing
 @test g1.refs[1] === 0
-
+@test g1.n == 4
 
 
 p1_missing = repeat([missing, -5, -10, 100, -300], inner = 2)
@@ -47,6 +43,10 @@ g1 = GroupedArray(p1_missing)
 @test length(g1) == 10
 @test g1[1] === missing
 @test g1.refs[1] === 0
+
+g1 = GroupedArray(p1_missing; coalesce = true)
+@test g1[1] === 1
+
 
 
 p2 = repeat(1:5, outer = 2)

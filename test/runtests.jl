@@ -4,7 +4,7 @@ p1 = repeat(1:5, inner = 2)
 
 
 g1 = GroupedArray(p1)
-@test eltype(g1) <: Union{Int, Missing}
+@test eltype(g1) <: Int
 @test size(g1) == (10,)
 @test length(g1) == 10
 @test g1[1] == 1
@@ -18,7 +18,7 @@ g1[1] = 10
 
 p1_missing = repeat([missing, 1, 2, 3, 4], inner = 2)
 g1 = GroupedArray(p1_missing)
-@test eltype(g1) <: Union{Int, Missing}
+@test eltype(g1) == Union{Int, Missing}
 @test size(g1) == (10,)
 @test length(g1) == 10
 @test g1[1] === missing
@@ -28,7 +28,7 @@ g1 = GroupedArray(p1_missing)
 
 p1_missing = repeat([missing, -5, -10, 100, -300], inner = 2)
 g1 = GroupedArray(p1_missing)
-@test eltype(g1) <: Union{Int, Missing}
+@test eltype(g1) == Union{Int, Missing}
 @test size(g1) == (10,)
 @test length(g1) == 10
 @test g1[1] === missing
@@ -46,7 +46,7 @@ g1 = GroupedArray(p1_missing)
 
 g1 = GroupedArray(p1_missing; coalesce = true)
 @test g1[1] === 1
-
+@test eltype(g1) <: Int
 
 
 p2 = repeat(1:5, outer = 2)
@@ -84,6 +84,7 @@ invrefpools = DataAPI.invrefpool(g)
 for x in eachindex(pools)
 	@test invrefpools[pools[x]] == x
 end
+@test get(invrefpools, missing, -1) == -1
 
 pools[invrefpools[missing]] == missing
 for ix in 1:g.ngroups

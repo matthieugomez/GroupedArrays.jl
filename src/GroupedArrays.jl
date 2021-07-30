@@ -75,11 +75,7 @@ end
 end
 @inline Base.get(x::GroupedInvRefPool, v::Missing, default)  = 0
 @inline function Base.get(x::GroupedInvRefPool, v::Integer, default)
-	if (v >= 1) & (v <= x.ngroups)
-		v
-	else
-		default
-	end
+	((v >= 1) & (v <= x.ngroups)) ? v : default
 end
 DataAPI.invrefpool(g::GroupedArray) = GroupedInvRefPool(g.ngroups)
 

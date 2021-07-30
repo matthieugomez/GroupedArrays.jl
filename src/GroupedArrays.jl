@@ -44,9 +44,8 @@ end
 # Data API
 DataAPI.refarray(g::GroupedArray) = g.refs
 DataAPI.levels(g::GroupedArray) = 1:g.ngroups
-function DataAPI.refvalue(g::GroupedArray, ref::Integer)
-	ref > 0 ? ref : missing
-end
+DataAPI.refvalue(g::GroupedArray, ref::Integer) = ref > 0 ? ref : missing
+
 # refpool is such that refpool[refarray[i]] = x
 struct GroupedRefPool <: AbstractVector{Union{Int, Missing}}
 	ngroups::Int
@@ -74,9 +73,7 @@ end
 	v
 end
 @inline Base.get(x::GroupedInvRefPool, v::Missing, default)  = 0
-@inline function Base.get(x::GroupedInvRefPool, v::Integer, default)
-	((v >= 1) & (v <= x.ngroups)) ? v : default
-end
+@inline Base.get(x::GroupedInvRefPool, v::Integer, default) = ((v >= 1) & (v <= x.ngroups)) ? v : default
 DataAPI.invrefpool(g::GroupedArray) = GroupedInvRefPool(g.ngroups)
 
 

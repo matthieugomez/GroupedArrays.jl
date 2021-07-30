@@ -51,9 +51,9 @@ g1 = GroupedArray(p1_missing; coalesce = true)
 
 p2 = repeat(1:5, outer = 2)
 g = GroupedArray(p1_missing, p2)
-@test g[1] === missing
+@test ismissing(g[1])
 g[3] = missing
-@test g[3] === missing
+@test ismissing(g[3])
 
 p3 = [1,2]
 @test_throws DimensionMismatch GroupedArray(p1, p3)
@@ -64,30 +64,41 @@ g = GroupedArray(p)
 
 using CategoricalArrays
 g = GroupedArray(categorical(p1_missing), categorical(p2))
-@test g[1] === missing
+@test ismissing(g[1])
 
 using PooledArrays
 g = GroupedArray(PooledArray(p1_missing), PooledArray(p2))
-@test g[1] === missing
+@test ismissing(g[1])
 
-g = GroupedArray(PooledArray(p1_missing), p2)
-@test g[1] === missing
 
 
 using DataAPI
+g = GroupedArray(PooledArray(p1_missing), p2)
+@test g[1] === missing
 refs = DataAPI.refarray(g)
 pools = DataAPI.refpool(g)
 invrefpools = DataAPI.invrefpool(g)
 @test all(pools[refs] .=== g)
 @test all(DataAPI.refvalue(g, refs[i]) === g[i] for i in 1:length(g))
-
+@test allunique(pools)
+@test size(pools) == (8,)
 for x in eachindex(pools)
 	@test invrefpools[pools[x]] == x
 end
-@test get(invrefpools, missing, -1) == -1
+@test get(invrefpools, missing, -1) == 0
 
-pools[invrefpools[missing]] == missing
+@test ismissing(pools[invrefpools[missing]])
 for ix in 1:g.ngroups
 	pools[invrefpools[ix]] == ix
 end
+
+g = GroupedArray(p2)
+invrefpools = DataAPI.invrefpool(g)
+@test get(invrefpools, missing, -1) == -1
+
+
+
+
+
+
 

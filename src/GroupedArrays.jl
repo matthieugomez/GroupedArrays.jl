@@ -55,7 +55,7 @@ DataAPI.refvalue(g::GroupedArray, ref::Integer) = ref > 0 ? ref : missing
 struct GroupedRefPool{T <: Union{Int, Missing}} <: AbstractVector{T}
 	ngroups::Int
 end
-Base.size(x::GroupedRefPool{T}) where T = (x.ngroups + T >: Missing,)
+Base.size(x::GroupedRefPool{T}) where T = (x.ngroups + (T >: Missing),)
 Base.axes(x::GroupedRefPool{T}) where T = ((1-(T >: Missing)):x.ngroups,)
 Base.IndexStyle(::Type{<: GroupedRefPool}) = Base.IndexLinear()
 Base.@propagate_inbounds function Base.getindex(x::GroupedRefPool{T}, i::Integer) where T

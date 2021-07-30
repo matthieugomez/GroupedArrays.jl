@@ -12,7 +12,7 @@ g1 = GroupedArray(p1)
 @test g1[g1.<=1] == g1[[1, 1]] 
 @test_throws ArgumentError g1[1] = 0
 g1[1] = 10
-@test g1.n == 10
+@test g1.ngroups == 10
 
 
 
@@ -23,7 +23,7 @@ g1 = GroupedArray(p1_missing)
 @test length(g1) == 10
 @test g1[1] === missing
 @test g1.refs[1] === 0
-@test g1.n == 4
+@test g1.ngroups == 4
 
 
 p1_missing = repeat([missing, -5, -10, 100, -300], inner = 2)
@@ -86,7 +86,7 @@ for x in eachindex(pools)
 end
 
 pools[invrefpools[missing]] == missing
-for ix in 1:g.n
+for ix in 1:g.ngroups
 	pools[invrefpools[ix]] == ix
 end
 

@@ -21,7 +21,7 @@ g = GroupedArray(p)
 #   missing
 ```
 
-Use the keyword argument `coalesce = true` to consider groups with missing values as distinct
+Use the keyword argument `coalesce = true` to consider missing values as distinct
 ```julia
 using GroupedArrays
 p = repeat(["a", "b", missing], outer = 2)
@@ -35,7 +35,6 @@ g = GroupedArray(p; coalesce = true)
 #  3
 ```
 
-Internally, a `GroupedArray` is stored as a vector of Integers, where 0 corresponds to `missing`.
 `GroupedArray` can be used to compute groups across multiple vectors:
 ```julia
 p1 = repeat(["a", "b"], outer = 3)
@@ -52,8 +51,9 @@ g = GroupedArray(p1, p2)
 
 
 ## See also
-The underlying code of `GroupedArrays` is taken from [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)
+Internally, a `GroupedArray` is stored as a vector of Integers, where 0 corresponds to `missing`. 
 
+The underlying code of `GroupedArrays` is taken from [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)
 `GroupedArrays`can be seen as [PooledArrays](https://github.com/JuliaData/PooledArrays.jl) restricted to arrays of integer/missing values
 
 

@@ -35,7 +35,7 @@ function GroupedArray(args...; coalesce = false)
 	for x in args
 		size(x) == s || throw(DimensionMismatch("cannot match array  sizes"))
 	end
-	groups = Vector{Int}(undef, length(args[1]))
+	groups = Vector{Int}(undef, prod(s))
 	ngroups, rhashes, gslots, sorted = row_group_slots(map(vec, args), Val(false), groups, !coalesce, false)
 	GroupedArray{length(s)}(reshape(groups, s), ngroups)
 end

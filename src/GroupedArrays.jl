@@ -13,7 +13,7 @@ Base.axes(g::GroupedArray) = axes(g.refs)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
 Base.LinearIndices(g::GroupedArray) = axes(g.refs, 1)
 
-Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number) where {R}
+Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number)
 	@boundscheck checkbounds(g, i)
 	@inbounds x = g.refs[i]
 	x == 0 ? missing : x
@@ -30,7 +30,7 @@ Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Number,  i:
 end
 
 # Constructor
-function GroupedArray(args...; coalesce = false) where {R}
+function GroupedArray(args...; coalesce = false)
 	s = size(args[1])
 	for x in args
 		size(x) == s || throw(DimensionMismatch("cannot match array  sizes"))

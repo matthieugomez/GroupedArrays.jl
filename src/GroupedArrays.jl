@@ -44,7 +44,7 @@ end
 # Data API
 DataAPI.refarray(g::GroupedArray) = g.refs
 DataAPI.levels(g::GroupedArray) = 1:g.ngroups
-Base.@propagate_inbounds function DataAPI.refvalue(g::GroupedArray, ref::Integer)
+function DataAPI.refvalue(g::GroupedArray, ref::Integer)
 	ref > 0 ? ref : missing
 end
 # refpool is such that refpool[refarray[i]] = x

@@ -53,7 +53,7 @@ g = GroupedArray(p1, p2)
 ## See also
 Internally, a `GroupedArray` is stored as a vector of Integers, where 0 corresponds to `missing`. 
 
-The underlying code of `GroupedArrays` is taken from [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)
-`GroupedArrays`can be seen as [PooledArrays](https://github.com/JuliaData/PooledArrays.jl) restricted to arrays of integer/missing values
+The algorithm to construct `GroupedArrays` is taken from [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)
+
 
 

@@ -81,7 +81,7 @@ invrefpools = DataAPI.invrefpool(g)
 @test all(pools[refs] .=== g)
 @test all(DataAPI.refvalue(g, refs[i]) === g[i] for i in 1:length(g))
 @test allunique(pools)
-@test size(pools) == (8,)
+@test size(pools) == (9,)
 for x in eachindex(pools)
 	@test invrefpools[pools[x]] == x
 end

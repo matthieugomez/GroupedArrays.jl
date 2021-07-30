@@ -59,6 +59,9 @@ p3 = [1,2]
 @test_throws DimensionMismatch GroupedArray(p1, p3)
 
 
+p = [1 2; 1 2; 2 1]
+g = GroupedArray(p)
+
 using CategoricalArrays
 g = GroupedArray(categorical(p1_missing), categorical(p2))
 @test g[1] === missing

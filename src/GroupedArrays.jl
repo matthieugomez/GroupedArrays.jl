@@ -31,12 +31,13 @@ end
 
 # Constructor
 function GroupedArray(args...; coalesce = false) where {R}
+	s = size(args[1])
 	for x in args
-		size(args[1]) == size(x) || throw(DimensionMismatch("cannot match array  sizes"))
+		size(x) == s || throw(DimensionMismatch("cannot match array  sizes"))
 	end
 	groups = Vector{Int}(undef, length(args[1]))
-	ngroups, rhashes, gslots, sorted = row_group_slots(args, Val(false), groups, !coalesce, false)
-	GroupedArray{ndims(args[1])}(groups, ngroups)
+	ngroups, rhashes, gslots, sorted = row_group_slots(map(vec, args), Val(false), groups, !coalesce, false)
+	GroupedArray{length(s)}(reshape(groups, s), ngroups)
 end
 
 

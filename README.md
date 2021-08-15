@@ -49,9 +49,7 @@ g = GroupedArray(p1, p2)
 #  3
 ```
 ## Motivation
-Internally, a `GroupedArray` is stored as a vector of Integers, where 0 corresponds to `missing`. 
-
-GroupedArrays can be seen as a PooledDataArray restricted to integers (+ missing). This has two advantages. First, there is no need to carry arround a vector of pooled values. Second, it makes it straightforward to define a constructor that takes multiple vectors as arguments.
+GroupedArrays can be seen as a PooledDataArray where the reference number gives the value (except that 0 corresponds to `missing`). This allows one to make lookup faster when the group value is not meaningful.
 
 ## See also
 The algorithm to construct `GroupedArrays` is taken from [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)

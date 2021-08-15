@@ -13,22 +13,29 @@ Base.axes(g::GroupedArray) = axes(g.refs)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
 Base.LinearIndices(g::GroupedArray) = axes(g.refs, 1)
 
+Base.@propagate_inbounds function Base.getindex(g::GroupedArray{Int}, i::Number)
+	@boundscheck checkbounds(g, i)
+	@inbounds g.refs[i]
+end
 
 Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number)
 	@boundscheck checkbounds(g, i)
 	@inbounds x = g.refs[i]
 	x == 0 ? missing : x
 end
-Base.@propagate_inbounds function Base.getindex(g::GroupedArray{Int}, i::Number)
-	@boundscheck checkbounds(g, i)
-	@inbounds g.refs[i]
-end
 
 Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Number,  i::Number)
 	@boundscheck checkbounds(g, i)
-	x <= 0 && throw(ArgumentError("The number x must be positive"))
-	x > g.ngroups && (g.ngroups = x)
+	x > 0 || throw(ArgumentError("The number x must be positive"))
+	if x > g.ngroups
+		g.ngroups = x
+	end
 	@inbounds g.refs[i] = x
+end
+
+Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{T}, x::Missing,  i::Number) where {T >: Missing}
+	@boundscheck checkbounds(g, i)
+	@inbounds g.refs[i] = 0
 end
 
 # Constructor

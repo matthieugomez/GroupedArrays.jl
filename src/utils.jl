@@ -267,7 +267,6 @@ function row_group_slots(cols::NTuple{N, AbstractVector},
     # Computing neither hashes nor groups isn't very useful,
     # and this method needs to allocate a groups vector anyway
     @assert all(col -> length(col) == length(groups), cols)
-
     missinginds = map(refpools) do refpool
         eltype(refpool) >: Missing ?
             something(findfirst(ismissing, refpool), lastindex(refpool)+1) : lastindex(refpool)+1

@@ -37,15 +37,21 @@ Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{T}, x::Missing,
 	@boundscheck checkbounds(g, i)
 	@inbounds g.refs[i] = 0
 end
+"""
+Constructor for GroupedArrays
 
-# Constructor
-function GroupedArray(args...; coalesce = false)
+GroupedArray constructor always promises that all elements between 1 and ngroups (included) are presented in refs. However, this is not necessarly true aftewards (setindex! does not check that the replaced ref corresponds to the last one)
+
+if coalesce = true, missing values are associated an integer
+if sort = false, groups are created in order of appearances. If sort = true, groups are sorted. If sort = nothing, fastest algorithm is used.
+"""
+function GroupedArray(args...; coalesce = false, sort = nothing)
 	s = size(args[1])
 	for x in args
 		size(x) == s || throw(DimensionMismatch("cannot match array  sizes"))
 	end
 	groups = Vector{Int}(undef, prod(s))
-	ngroups, rhashes, gslots, sorted = row_group_slots(map(vec, args), Val(false), groups, !coalesce, false)
+	ngroups, rhashes, gslots, sorted = row_group_slots(map(vec, args), Val(false), groups, !coalesce, sort)
 	if !coalesce & any((eltype(x) >: Missing for x in args))
 		T = Union{Int, Missing}
 	else
@@ -78,8 +84,11 @@ end
 Base.allunique(x::GroupedRefPool) = true
 
 DataAPI.refpool(g::GroupedArray{T}) where {T} = GroupedRefPool{T}(g.ngroups)
-# invrefpool is such that invrefpool[refpool[x]] = x. Basically, it gives the index in the pool (so the ref level) corresponding to each element of refpool
-# so it should be missing -> 0 and i -> i for 1 ≤ i ≤ g.ngroups
+# invrefpool is such that invrefpool[refpool[x]] = x. 
+# In words, for each element of refpool, it associates the corresponding index in the pool
+# here, this gives
+#  missing -> 0 
+#  i -> i for 1 ≤ i ≤ ngroups
 struct GroupedInvRefPool{T}
 	ngroups::Int
 end

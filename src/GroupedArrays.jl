@@ -52,13 +52,12 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	end
 	groups = Vector{Int}(undef, prod(s))
 	ngroups, rhashes, gslots, sorted = row_group_slots(map(vec, args), Val(false), groups, !coalesce, sort)
-	if !coalesce & any((eltype(x) >: Missing for x in args))
-		T = Union{Int, Missing}
-	else
-		T = Int
-	end
+	T = !coalesce && any(eltype(x) >: Missing for x in args) ? Union{Int, Missing} : Int
 	GroupedArray{T, length(s)}(reshape(groups, s), ngroups)
 end
+
+
+
 
 
 # Data API

@@ -51,7 +51,7 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 		size(x) == s || throw(DimensionMismatch("cannot match array  sizes"))
 	end
 	groups = Vector{Int}(undef, prod(s))
-	ngroups, rhashes, gslots, sorted = row_group_slots(map(vec, args), Val(false), groups, !coalesce, sort)
+	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, sort)
 	T = !coalesce && any(eltype(x) >: Missing for x in args) ? Union{Int, Missing} : Int
 	GroupedArray{T, length(s)}(reshape(groups, s), ngroups)
 end

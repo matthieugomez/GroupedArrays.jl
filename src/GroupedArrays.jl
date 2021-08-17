@@ -31,7 +31,7 @@ Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Number,  i:
 	@inbounds g.refs[i] = x
 end
 
-Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{T}, x::Missing,  i::Number) where {T >: Missing}
+Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{T}, ::Missing,  i::Number) where {T >: Missing}
 	@boundscheck checkbounds(g, i)
 	@inbounds g.refs[i] = 0
 end
@@ -83,18 +83,18 @@ DataAPI.refpool(g::GroupedArray{T}) where {T} = GroupedRefPool{T}(g.ngroups)
 struct GroupedInvRefPool{T}
 	ngroups::Int
 end
-@inline Base.haskey(x::GroupedInvRefPool{T}, v::Missing) where {T} = T >: Missing
+@inline Base.haskey(x::GroupedInvRefPool{T}, ::Missing) where {T} = T >: Missing
 @inline Base.haskey(x::GroupedInvRefPool, v::Integer) = 1 <= v <= x.ngroups
-Base.@propagate_inbounds function Base.getindex(x::GroupedInvRefPool{T}, v::Missing) where {T}
+Base.@propagate_inbounds function Base.getindex(x::GroupedInvRefPool{T}, ::Missing) where {T}
 	@boundscheck T >: Missing
 	return 0
 end
-Base.@propagate_inbounds function Base.getindex(x::GroupedInvRefPool, v::Integer)
-	@boundscheck 1 <= v <= x.ngroups
-	return v
+Base.@propagate_inbounds function Base.getindex(x::GroupedInvRefPool, i::Integer)
+	@boundscheck 1 <= i <= x.ngroups
+	return i
 end
-@inline Base.get(x::GroupedInvRefPool{T}, v::Missing, default) where {T} = T >: Missing ? 0 : default
-@inline Base.get(x::GroupedInvRefPool, v::Integer, default) = 1 <= v <= x.ngroups ? v : default
+@inline Base.get(x::GroupedInvRefPool{T}, ::Missing, default) where {T} = T >: Missing ? 0 : default
+@inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= v <= x.ngroups ? i : default
 DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroups)
 
 export GroupedArray

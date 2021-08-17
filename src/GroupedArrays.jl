@@ -44,18 +44,17 @@ if coalesce = true, missing values are associated an integer
 if sort = false, groups are created in order of appearances. If sort = true, groups are sorted. If sort = nothing, fastest algorithm is used.
 """
 function GroupedArray(args...; coalesce = false, sort = nothing)
-	s = size(first(args))
+	s = size(first(args)) 
 	all(size(x) == s for x in args) || throw(DimensionMismatch("cannot match array  sizes"))
 	groups = Vector{Int}(undef, prod(s))
 	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, sort)
-	# sort groups if row_group_slots hasn't already done that
 	if sort === true && !sorted
-	    # Find index of representative row for each group
-	    idx = Vector{Int}(undef, prod(s))
+		# sort groups if row_group_slots hasn't already done that
+		# idx returns index of first row for each group
+	    idx = Vector{Int}(undef, ngroups)
 	    filled = fill(false, ngroups)
 	    nfilled = 0
-	    @inbounds for i in eachindex(groups)
-	        gix = groups[i]
+	    @inbounds for (i, gix) in enumerate(groups)
 	        if gix > 0 && !filled[gix]
 	            filled[gix] = true
 	            idx[gix] = i
@@ -63,10 +62,9 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	            nfilled == ngroups && break
 	        end
 	    end
-	    group_invperm = invperm(sortperm(map(x -> view(x, idx), args)))
-	    @inbounds for i in eachindex(groups)
-	        gix = groups[i]
-	        groups[i] = gix == 0 ? 0 : group_invperm[gix]
+	    group_invperm = invperm(sortperm(map(x -> view(x, idx), args)...))
+	    @inbounds for (i, gix) in enumerate(groups)
+	        groups[i] = gix > 0 ? group_invperm[gix] : 0
 	    end
 	end
 	T = !coalesce && any(eltype(x) >: Missing for x in args) ? Union{Int, Missing} : Int

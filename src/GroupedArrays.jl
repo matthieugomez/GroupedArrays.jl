@@ -71,11 +71,6 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	GroupedArray{T, length(s)}(reshape(groups, s), ngroups)
 end
 
-function fillfirst!(outcol::AbstractVector, incol::AbstractVector, groups, ngroups)
-
-    outcol
-end
-
 
 # Data API
 DataAPI.refarray(g::GroupedArray) = g.refs

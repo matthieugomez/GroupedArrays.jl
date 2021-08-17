@@ -44,16 +44,39 @@ if coalesce = true, missing values are associated an integer
 if sort = false, groups are created in order of appearances. If sort = true, groups are sorted. If sort = nothing, fastest algorithm is used.
 """
 function GroupedArray(args...; coalesce = false, sort = nothing)
-	s = size(args[1])
+	s = size(first(args))
 	all(size(x) == s for x in args) || throw(DimensionMismatch("cannot match array  sizes"))
 	groups = Vector{Int}(undef, prod(s))
 	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, sort)
+	# sort groups if row_group_slots hasn't already done that
+	if sort === true && !sorted
+	    # Find index of representative row for each group
+	    idx = Vector{Int}(undef, prod(s))
+	    filled = fill(false, ngroups)
+	    nfilled = 0
+	    @inbounds for i in eachindex(groups)
+	        gix = groups[i]
+	        if gix > 0 && !filled[gix]
+	            filled[gix] = true
+	            idx[gix] = i
+	            nfilled += 1
+	            nfilled == ngroups && break
+	        end
+	    end
+	    group_invperm = invperm(sortperm(map(x -> view(x, idx), args)))
+	    @inbounds for i in eachindex(groups)
+	        gix = groups[i]
+	        groups[i] = gix == 0 ? 0 : group_invperm[gix]
+	    end
+	end
 	T = !coalesce && any(eltype(x) >: Missing for x in args) ? Union{Int, Missing} : Int
 	GroupedArray{T, length(s)}(reshape(groups, s), ngroups)
 end
 
+function fillfirst!(outcol::AbstractVector, incol::AbstractVector, groups, ngroups)
 
-
+    outcol
+end
 
 
 # Data API

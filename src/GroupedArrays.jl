@@ -87,11 +87,11 @@ struct GroupedInvRefPool{T}
 end
 @inline Base.haskey(x::GroupedInvRefPool{T}, v::Missing) where {T} = T >: Missing
 @inline Base.haskey(x::GroupedInvRefPool, v::Integer) = 1 <= v <= x.ngroups
-@inline function Base.getindex(x::GroupedInvRefPool{T}, v::Missing) where {T}
+Base.@propagate_inbounds function Base.getindex(x::GroupedInvRefPool{T}, v::Missing) where {T}
 	@boundscheck T >: Missing
 	0
 end
-@inline function Base.getindex(x::GroupedInvRefPool, v::Integer)
+Base.@propagate_inbounds function Base.getindex(x::GroupedInvRefPool, v::Integer)
 	@boundscheck 1 <= v <= x.ngroups
 	v
 end

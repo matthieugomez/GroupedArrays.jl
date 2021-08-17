@@ -21,7 +21,7 @@ end
 Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number)
 	@boundscheck checkbounds(g, i)
 	@inbounds x = g.refs[i]
-	return x == 0 ? missing : x
+	x == 0 ? missing : x
 end
 
 Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Number,  i::Number)
@@ -68,9 +68,9 @@ end
 Base.size(x::GroupedRefPool{T}) where T = (x.ngroups + (T >: Missing),)
 Base.axes(x::GroupedRefPool{T}) where T = ((1-(T >: Missing)):x.ngroups,)
 Base.IndexStyle(::Type{<: GroupedRefPool}) = Base.IndexLinear()
-Base.@propagate_inbounds function Base.getindex(x::GroupedRefPool{T}, i::Integer) where T
+@inline function Base.getindex(x::GroupedRefPool{T}, i::Integer) where T
     @boundscheck checkbounds(x, i)
-    return T >: Missing && i == 0 ? missing : i
+    T >: Missing && i == 0 ? missing : i
 end
 Base.allunique(x::GroupedRefPool) = true
 
@@ -85,13 +85,13 @@ struct GroupedInvRefPool{T}
 end
 @inline Base.haskey(x::GroupedInvRefPool{T}, ::Missing) where {T} = T >: Missing
 @inline Base.haskey(x::GroupedInvRefPool, v::Integer) = 1 <= v <= x.ngroups
-Base.@propagate_inbounds function Base.getindex(x::GroupedInvRefPool{T}, ::Missing) where {T}
+@inline function Base.getindex(x::GroupedInvRefPool{T}, ::Missing) where {T}
 	@boundscheck T >: Missing
-	return 0
+	0
 end
-Base.@propagate_inbounds function Base.getindex(x::GroupedInvRefPool, i::Integer)
+@inline function Base.getindex(x::GroupedInvRefPool, i::Integer)
 	@boundscheck 1 <= i <= x.ngroups
-	return i
+	i
 end
 @inline Base.get(x::GroupedInvRefPool{T}, ::Missing, default) where {T} = T >: Missing ? 0 : default
 @inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= v <= x.ngroups ? i : default

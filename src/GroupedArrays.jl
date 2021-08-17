@@ -62,7 +62,7 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	            nfilled == ngroups && break
 	        end
 	    end
-	    group_invperm = invperm(sortperm(map(x -> view(x, idx), args)...))
+	    group_invperm = invperm(sortperm(collect(zip(map(x -> view(x, idx), args)...))))
 	    @inbounds for (i, gix) in enumerate(groups)
 	        groups[i] = gix > 0 ? group_invperm[gix] : 0
 	    end

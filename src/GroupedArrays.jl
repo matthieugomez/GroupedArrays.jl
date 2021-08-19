@@ -51,21 +51,21 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	if sort === true && !sorted
 		# sort groups if row_group_slots hasn't already done that
 		# idx returns index of first row for each group
-	    idx = Vector{Int}(undef, ngroups)
-	    filled = fill(false, ngroups)
-	    nfilled = 0
-	    @inbounds for (i, gix) in enumerate(groups)
-	        if gix > 0 && !filled[gix]
-	            filled[gix] = true
-	            idx[gix] = i
-	            nfilled += 1
-	            nfilled == ngroups && break
-	        end
-	    end
-	    group_invperm = invperm(sortperm(collect(zip(map(x -> view(x, idx), args)...))))
-	    @inbounds for (i, gix) in enumerate(groups)
-	        groups[i] = gix > 0 ? group_invperm[gix] : 0
-	    end
+		idx = Vector{Int}(undef, ngroups)
+		filled = fill(false, ngroups)
+		nfilled = 0
+		@inbounds for (i, gix) in enumerate(groups)
+			if gix > 0 && !filled[gix]
+				filled[gix] = true
+				idx[gix] = i
+				nfilled += 1
+				nfilled == ngroups && break
+			end
+		end
+		group_invperm = invperm(sortperm(collect(zip(map(x -> view(x, idx), args)...))))
+		@inbounds for (i, gix) in enumerate(groups)
+			groups[i] = gix > 0 ? group_invperm[gix] : 0
+		end
 	end
 	T = !coalesce && any(eltype(x) >: Missing for x in args) ? Union{Int, Missing} : Int
 	GroupedArray{T, length(s)}(reshape(groups, s), ngroups)

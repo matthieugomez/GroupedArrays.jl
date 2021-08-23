@@ -51,20 +51,9 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	all(size(x) == s for x in args) || throw(DimensionMismatch("cannot match array  sizes"))
 	groups = Vector{Int}(undef, prod(s))
 	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, sort)
+	# sort groups if row_group_slots hasn't already done that
 	if sort === true && !sorted
-		# sort groups if row_group_slots hasn't already done that
-		# idx returns index of first row for each group
-		idx = Vector{Int}(undef, ngroups)
-		filled = fill(false, ngroups)
-		nfilled = 0
-		@inbounds for (i, gix) in enumerate(groups)
-			if gix > 0 && !filled[gix]
-				filled[gix] = true
-				idx[gix] = i
-				nfilled += 1
-				nfilled == ngroups && break
-			end
-		end
+		idx = find_index(GroupedArray{Int, 1}(groups, ngroups))
 		group_invperm = invperm(sortperm(collect(zip(map(x -> view(x, idx), args)...))))
 		@inbounds for (i, gix) in enumerate(groups)
 			groups[i] = gix > 0 ? group_invperm[gix] : 0
@@ -73,6 +62,24 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	T = !coalesce && any(eltype(x) >: Missing for x in args) ? Union{Int, Missing} : Int
 	GroupedArray{T, length(s)}(reshape(groups, s), ngroups)
 end
+
+# Find index of representative row for each group
+function find_index(g::GroupedArray)
+	groups, ngroups = g.refs, g.ngroups
+	idx = Vector{Int}(undef, ngroups)
+	filled = fill(false, ngroups)
+	nfilled = 0
+	@inbounds for (i, gix) in enumerate(groups)
+		if gix > 0 && !filled[gix]
+			filled[gix] = true
+			idx[gix] = i
+			nfilled += 1
+			nfilled == ngroups && break
+		end
+	end
+	return idx
+end
+
 
 
 # Data API

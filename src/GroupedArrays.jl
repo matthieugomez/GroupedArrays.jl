@@ -8,6 +8,9 @@ mutable struct GroupedArray{T <: Union{Int, Missing}, N} <: AbstractArray{T, N}
 	refs::Array{Int, N}   # refs must be between 0 and n. 0 means missing
 	ngroups::Int          # Number of potential values (as a contract, we always have ngroups >= maximum(refs))
 end
+const GroupedVector{T} = GroupedArray{T, 1}
+const GroupedMatrix{T} = GroupedArray{T, 2}
+
 Base.size(g::GroupedArray) = size(g.refs)
 Base.axes(g::GroupedArray) = axes(g.refs)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
@@ -113,5 +116,5 @@ end
 @inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= v <= x.ngroups ? i : default
 DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroups)
 
-export GroupedArray
+export GroupedArray, GroupedVector, GroupedMatrix
 end # module

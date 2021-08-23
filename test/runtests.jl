@@ -98,6 +98,9 @@ invrefpools = DataAPI.invrefpool(g)
 
 
 
+# all missings
+g = GroupedArray([missing, missing, missing])
+@test all(ismissing(x) for x in g)
 
 
 

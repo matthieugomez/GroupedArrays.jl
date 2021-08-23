@@ -4,9 +4,14 @@ using DataAPI
 using Base.Threads
 include("spawn.jl")
 include("utils.jl")
+
+"""
+GroupedArray{T,N} <: AbstractArray{T,N}
+N-dimensional dense array with elements of type T, where T <: Union{Int, Missing}
+"""
 mutable struct GroupedArray{T <: Union{Int, Missing}, N} <: AbstractArray{T, N}
-	groups::Array{Int, N}   # groups must be between 0 and n. 0 means missing
-	ngroups::Int          # Number of potential values (as a contract, we always have ngroups >= maximum(groups))
+	groups::Array{Int, N} 
+	ngroups::Int
 end
 const GroupedVector{T} = GroupedArray{T, 1}
 const GroupedMatrix{T} = GroupedArray{T, 2}
@@ -39,14 +44,30 @@ Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{T}, ::Missing, 
 	@inbounds g.groups[i] = 0
 end
 """
-Constructor for GroupedArrays
 
-GroupedArray constructor always promises that all elements between 1 and ngroups (included) are presented in groups. However, this is not necessarly true aftewards (setindex! does not check that the replaced ref corresponds to the last one)
+	GroupedArray(args... [; coalesce = false, sort = nothing])
 
-if coalesce = true, missing values are associated an integer
-if sort = false, groups are created in order of appearances. If sort = true, groups are sorted. If sort = nothing, fastest algorithm is used.
+Construct a `GroupedArray` taking on distinct values for the groups formed by elements of `args`
+
+### Arguments
+* `args...`: `AbstractArrays` of same sizes.
+
+### Keyword arguments
+* `coalesce::Bool`: should missing values considered as distinct grotups indicators?
+* `sort::Union{Bool, Nothing}`: should the order of the groups be the sort order?
+
+### Examples
+```julia
+using GroupedArrays
+p1 = ["a", "a", "b", "b", missing, missing]
+GroupedArray(p1)
+GroupedArray(p1; coalesce = true)
+p2 = [1, 1, 1, 2, 2, 2]
+GroupedArray(p1, p2)
+```
 """
 function GroupedArray(args...; coalesce = false, sort = nothing)
+	all(x isa AbstractArray for x in args) || throw(DimensionMismatch("arguments are not AbstractArrays"))
 	s = size(first(args)) 
 	all(size(x) == s for x in args) || throw(DimensionMismatch("cannot match array  sizes"))
 	groups = Vector{Int}(undef, prod(s))
@@ -123,5 +144,8 @@ end
 @inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= v <= x.ngroups ? i : default
 DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroups)
 
+
 export GroupedArray, GroupedVector, GroupedMatrix
+include("precompile.jl")
+_precompile_()
 end # module

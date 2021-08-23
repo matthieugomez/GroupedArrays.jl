@@ -10,6 +10,9 @@ mutable struct GroupedArray{T <: Union{Int, Missing}, N} <: AbstractArray{T, N}
 	refs::Array{Int, N}   # refs must be between 0 and n. 0 means missing
 	ngroups::Int          # Number of potential values (as a contract, we always have ngroups >= maximum(refs))
 end
+const GroupedVector{T} = PooledArray{T, 1}
+const GroupedMatrix{T} = PooledArray{T, 2}
+
 Base.size(g::GroupedArray) = size(g.refs)
 Base.axes(g::GroupedArray) = axes(g.refs)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
@@ -51,7 +54,7 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	groups = Vector{Int}(undef, prod(s))
 	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, sort)
 	if sort === true && !sorted
-		idx = first_index(groups, ngroups)
+		idx = find_index(GroupedArray{Int, 1}(groups, ngroups))
 		group_invperm = invperm(sortperm(collect(zip(map(x -> view(x, idx), args)...))))
 		@inbounds for (i, gix) in enumerate(groups)
 			groups[i] = gix > 0 ? group_invperm[gix] : 0
@@ -61,7 +64,9 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	GroupedArray{T, length(s)}(reshape(groups, s), ngroups)
 end
 
-function first_index(groups, ngroups)
+# Find index of representative row for each group
+function find_index(g::GroupedArray)
+	groups, ngroups = g.refs, g.ngroups
 	# sort groups if row_group_slots hasn't already done that
 	# idx returns index of first row for each group
 	idx = Vector{Int}(undef, ngroups)
@@ -122,19 +127,16 @@ DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroup
 
 
 function group(args...; coalesce = false)
-	s = size(first(args)) 
-	all(size(x) == s for x in args) || throw(DimensionMismatch("cannot match array  sizes"))
-	groups = Vector{Int}(undef, prod(s))
-	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, nothing)
-	idx = first_index(groups, ngroups)
+	g = GroupedArray(args...; coalesce = coalesce)
+	idx = find_index(g)
 	pool = [getindex.(args, Ref(i)) for i in idx]
 	if !coalesce && any(eltype(x) >: Missing for x in args)
-		groups .+= 1
+		g.refs .+= 1
 		pool = vcat(missing, pool)
 	end
 	invpool = Dict(v => i for (i, v) in enumerate(pool))
-	PooledArray(PooledArrays.RefArray(groups), invpool, pool)
+	PooledArray(PooledArrays.RefArray(g.refs), invpool, pool)
 end
 
-export GroupedArray, group
+export GroupedArray, GroupedVector, GroupedMatrix, group
 end # module

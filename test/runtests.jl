@@ -22,7 +22,7 @@ g1 = GroupedArray(p1_missing)
 @test size(g1) == (10,)
 @test length(g1) == 10
 @test g1[1] === missing
-@test g1.refs[1] === 0
+@test g1.groups[1] === 0
 @test g1.ngroups == 4
 
 
@@ -32,7 +32,7 @@ g1 = GroupedArray(p1_missing)
 @test size(g1) == (10,)
 @test length(g1) == 10
 @test g1[1] === missing
-@test g1.refs[1] === 0
+@test g1.groups[1] === 0
 @test g1[end] === g1[end-1]
 
 
@@ -42,7 +42,7 @@ g1 = GroupedArray(p1_missing)
 @test size(g1) == (10,)
 @test length(g1) == 10
 @test g1[1] === missing
-@test g1.refs[1] === 0
+@test g1.groups[1] === 0
 
 g1 = GroupedArray(p1_missing; coalesce = true)
 @test g1[1] === 1

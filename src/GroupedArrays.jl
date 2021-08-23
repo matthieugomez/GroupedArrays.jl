@@ -5,25 +5,25 @@ using Base.Threads
 include("spawn.jl")
 include("utils.jl")
 mutable struct GroupedArray{T <: Union{Int, Missing}, N} <: AbstractArray{T, N}
-	refs::Array{Int, N}   # refs must be between 0 and n. 0 means missing
-	ngroups::Int          # Number of potential values (as a contract, we always have ngroups >= maximum(refs))
+	groups::Array{Int, N}   # groups must be between 0 and n. 0 means missing
+	ngroups::Int          # Number of potential values (as a contract, we always have ngroups >= maximum(groups))
 end
 const GroupedVector{T} = GroupedArray{T, 1}
 const GroupedMatrix{T} = GroupedArray{T, 2}
 
-Base.size(g::GroupedArray) = size(g.refs)
-Base.axes(g::GroupedArray) = axes(g.refs)
+Base.size(g::GroupedArray) = size(g.groups)
+Base.axes(g::GroupedArray) = axes(g.groups)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
-Base.LinearIndices(g::GroupedArray) = axes(g.refs, 1)
+Base.LinearIndices(g::GroupedArray) = axes(g.groups, 1)
 
 Base.@propagate_inbounds function Base.getindex(g::GroupedArray{Int}, i::Number)
 	@boundscheck checkbounds(g, i)
-	@inbounds g.refs[i]
+	@inbounds g.groups[i]
 end
 
 Base.@propagate_inbounds function Base.getindex(g::GroupedArray, i::Number)
 	@boundscheck checkbounds(g, i)
-	@inbounds x = g.refs[i]
+	@inbounds x = g.groups[i]
 	x == 0 ? missing : x
 end
 
@@ -31,17 +31,17 @@ Base.@propagate_inbounds function Base.setindex!(g::GroupedArray, x::Number,  i:
 	@boundscheck checkbounds(g, i)
 	x > 0 || throw(ArgumentError("The number x must be positive"))
 	x > g.ngroups && (g.ngroups = x)
-	@inbounds g.refs[i] = x
+	@inbounds g.groups[i] = x
 end
 
 Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{T}, ::Missing,  i::Number) where {T >: Missing}
 	@boundscheck checkbounds(g, i)
-	@inbounds g.refs[i] = 0
+	@inbounds g.groups[i] = 0
 end
 """
 Constructor for GroupedArrays
 
-GroupedArray constructor always promises that all elements between 1 and ngroups (included) are presented in refs. However, this is not necessarly true aftewards (setindex! does not check that the replaced ref corresponds to the last one)
+GroupedArray constructor always promises that all elements between 1 and ngroups (included) are presented in groups. However, this is not necessarly true aftewards (setindex! does not check that the replaced ref corresponds to the last one)
 
 if coalesce = true, missing values are associated an integer
 if sort = false, groups are created in order of appearances. If sort = true, groups are sorted. If sort = nothing, fastest algorithm is used.
@@ -53,7 +53,7 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, sort)
 	# sort groups if row_group_slots hasn't already done that
 	if sort === true && !sorted
-		idx = find_index(GroupedArray{Int, 1}(groups, ngroups))
+		idx = find_index(GroupedVector{Int}(groups, ngroups))
 		group_invperm = invperm(sortperm(collect(zip(map(x -> view(x, idx), args)...))))
 		@inbounds for (i, gix) in enumerate(groups)
 			groups[i] = gix > 0 ? group_invperm[gix] : 0
@@ -65,7 +65,7 @@ end
 
 # Find index of representative row for each group
 function find_index(g::GroupedArray)
-	groups, ngroups = g.refs, g.ngroups
+	groups, ngroups = g.groups, g.ngroups
 	idx = Vector{Int}(undef, ngroups)
 	filled = fill(false, ngroups)
 	nfilled = 0
@@ -83,7 +83,7 @@ end
 
 
 # Data API
-DataAPI.refarray(g::GroupedArray) = g.refs
+DataAPI.refarray(g::GroupedArray) = g.groups
 DataAPI.levels(g::GroupedArray) = 1:g.ngroups
 DataAPI.refvalue(g::GroupedArray, ref::Integer) = ref > 0 ? ref : missing
 

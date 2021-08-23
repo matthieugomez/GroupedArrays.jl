@@ -2,6 +2,8 @@ module GroupedArrays
 using Missings
 using DataAPI
 using Base.Threads
+using PooledArrays
+
 include("spawn.jl")
 include("utils.jl")
 mutable struct GroupedArray{T <: Union{Int, Missing}, N} <: AbstractArray{T, N}
@@ -49,19 +51,7 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	groups = Vector{Int}(undef, prod(s))
 	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, sort)
 	if sort === true && !sorted
-		# sort groups if row_group_slots hasn't already done that
-		# idx returns index of first row for each group
-		idx = Vector{Int}(undef, ngroups)
-		filled = fill(false, ngroups)
-		nfilled = 0
-		@inbounds for (i, gix) in enumerate(groups)
-			if gix > 0 && !filled[gix]
-				filled[gix] = true
-				idx[gix] = i
-				nfilled += 1
-				nfilled == ngroups && break
-			end
-		end
+		idx = first_index(groups, ngroups)
 		group_invperm = invperm(sortperm(collect(zip(map(x -> view(x, idx), args)...))))
 		@inbounds for (i, gix) in enumerate(groups)
 			groups[i] = gix > 0 ? group_invperm[gix] : 0
@@ -71,6 +61,22 @@ function GroupedArray(args...; coalesce = false, sort = nothing)
 	GroupedArray{T, length(s)}(reshape(groups, s), ngroups)
 end
 
+function first_index(groups, ngroups)
+	# sort groups if row_group_slots hasn't already done that
+	# idx returns index of first row for each group
+	idx = Vector{Int}(undef, ngroups)
+	filled = fill(false, ngroups)
+	nfilled = 0
+	@inbounds for (i, gix) in enumerate(groups)
+		if gix > 0 && !filled[gix]
+			filled[gix] = true
+			idx[gix] = i
+			nfilled += 1
+			nfilled == ngroups && break
+		end
+	end
+	return idx
+end
 
 # Data API
 DataAPI.refarray(g::GroupedArray) = g.refs
@@ -113,5 +119,22 @@ end
 @inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= v <= x.ngroups ? i : default
 DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroups)
 
-export GroupedArray
+
+
+function group(args...; coalesce = false)
+	s = size(first(args)) 
+	all(size(x) == s for x in args) || throw(DimensionMismatch("cannot match array  sizes"))
+	groups = Vector{Int}(undef, prod(s))
+	ngroups, rhashes, gslots, sorted = row_group_slots(vec.(args), Val(false), groups, !coalesce, nothing)
+	idx = first_index(groups, ngroups)
+	pool = [getindex.(args, Ref(i)) for i in idx]
+	if !coalesce && any(eltype(x) >: Missing for x in args)
+		groups .+= 1
+		pool = vcat(missing, pool)
+	end
+	invpool = Dict(v => i for (i, v) in enumerate(pool))
+	PooledArray(PooledArrays.RefArray(groups), invpool, pool)
+end
+
+export GroupedArray, group
 end # module

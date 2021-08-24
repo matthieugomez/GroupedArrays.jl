@@ -16,6 +16,12 @@ end
 const GroupedVector{T} = GroupedArray{T, 1}
 const GroupedMatrix{T} = GroupedArray{T, 2}
 
+##############################################################################
+##
+## Arrays API
+##
+##############################################################################
+
 Base.size(g::GroupedArray) = size(g.groups)
 Base.axes(g::GroupedArray) = axes(g.groups)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
@@ -43,6 +49,13 @@ Base.@propagate_inbounds function Base.setindex!(g::GroupedArray{T}, ::Missing, 
 	@boundscheck checkbounds(g, i)
 	@inbounds g.groups[i] = 0
 end
+
+##############################################################################
+##
+## Constructor
+##
+##############################################################################
+
 """
 
 	GroupedArray(args... [; coalesce = false, sort = nothing])
@@ -102,8 +115,34 @@ function find_index(g::GroupedArray)
 end
 
 
+##############################################################################
+##
+## Conversions
+##
+##############################################################################
+Base.convert(::Type{GroupedArray{T, N}}, g::GroupedArray{T, N}) where {T, N} = g
+function Base.convert(::Type{GroupedArray{Union{Int, Missing},N}}, g::GroupedArray{Int, N}) where {N}
+    return GroupedArray{Union{Int, Missing},N}(g.groups, g.ngroups)
+end
+function Base.convert(::Type{GroupedArray{Int, N}}, g::GroupedArray{Union{Int, Missing}, N}) where {N}
+	@assert all(x > 0 for x in g.groups)
+    return GroupedArray{Int,N}(g.groups, g.ngroups)
+end
 
-# Data API
+Base.convert(::Type{GroupedArray}, g::GroupedArray) = g
+
+function Base.convert(::Type{GroupedArray{T,N}}, a::AbstractArray) where {T, N}
+    convert(GroupedArray{T, N}, GroupedArray(a))
+end
+Base.convert(::Type{GroupedArray}, a::AbstractArray) = GroupedArray(a)
+
+
+##############################################################################
+##
+## Data API
+##
+##############################################################################
+
 DataAPI.refarray(g::GroupedArray) = g.groups
 DataAPI.levels(g::GroupedArray) = 1:g.ngroups
 DataAPI.refvalue(g::GroupedArray, ref::Integer) = ref > 0 ? ref : missing
@@ -146,6 +185,4 @@ DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroup
 
 
 export GroupedArray, GroupedVector, GroupedMatrix
-include("precompile.jl")
-_precompile_()
 end # module

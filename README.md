@@ -49,7 +49,7 @@ g = GroupedArray(p1, p2)
 #  3
 ```
 ## Motivation
-GroupedArrays is similar to PooledArray, except that the pool is simply the set of reference numbers (and `missing` is encoded as 0). This allows for faster lookup when the group value is not meaningful.
+GroupedArrays is similar to PooledArray, except that the pool is simply the set of integers from 1 to n where n is the number of groups(`missing` is encoded as 0). This allows for faster lookup in setups where the group value is not meaningful.
 
 ## See also
 The algorithm to construct `GroupedArrays` is taken from [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)

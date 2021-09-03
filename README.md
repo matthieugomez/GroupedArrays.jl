@@ -1,4 +1,4 @@
-[![Build status](https://github.com/matthieugomez/GroupedArrays.jl/workflows/CI/badge.svg)](https://github.com/matthieugomez/GroupedArrays.jl/actions)
+[![Build status](https://github.com/FixedEffects/GroupedArrays.jl/workflows/CI/badge.svg)](https://github.com/FixedEffects/GroupedArrays.jl/actions)
 
 ## Installation
 The package is registered in the [`General`](https://github.com/JuliaRegistries/General) registry and so can be installed at the REPL with 

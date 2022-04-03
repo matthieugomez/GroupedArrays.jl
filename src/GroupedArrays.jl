@@ -159,6 +159,7 @@ Base.IndexStyle(::Type{<: GroupedRefPool}) = Base.IndexLinear()
     T >: Missing && i == 0 ? missing : i
 end
 Base.allunique(x::GroupedRefPool) = true
+Base.LinearIndices(x::GroupedRefPool) = axes(x, 1)
 
 DataAPI.refpool(g::GroupedArray{T}) where {T} = GroupedRefPool{T}(g.ngroups)
 # invrefpool is such that invrefpool[refpool[x]] = x. 

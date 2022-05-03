@@ -55,6 +55,9 @@ g = GroupedArray(p1_missing, p2)
 g[3] = missing
 @test ismissing(g[3])
 
+g2 = GroupedArray(p2, GroupedArray(p1_missing))
+@test all(g .=== g2)
+
 p3 = [1,2]
 @test_throws DimensionMismatch GroupedArray(p1, p3)
 

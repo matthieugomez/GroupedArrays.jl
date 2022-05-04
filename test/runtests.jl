@@ -52,11 +52,11 @@ g1 = GroupedArray(p1_missing; coalesce = true)
 p2 = repeat(1:5, outer = 2)
 g = GroupedArray(p1_missing, p2)
 @test ismissing(g[1])
-g[3] = missing
-@test ismissing(g[3])
-
 g2 = GroupedArray(p2, GroupedArray(p1_missing))
 @test all(g .=== g2)
+
+g[3] = missing
+@test ismissing(g[3])
 
 p3 = [1,2]
 @test_throws DimensionMismatch GroupedArray(p1, p3)

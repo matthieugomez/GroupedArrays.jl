@@ -55,9 +55,14 @@ g = GroupedArray(p1_missing, p2)
 g[3] = missing
 @test ismissing(g[3])
 
-@test length(GroupedArray(GroupedArray(p1_missing), p2)) == 10
-@test length(GroupedArray(p2, GroupedArray(p1_missing))) == 10
-	
+g = GroupedArray(p1_missing, p2, sort = true)
+g2 =  GroupedArray(GroupedArray(p1_missing), p2, sort = true)
+@test all(g .=== g2)
+g =  GroupedArray(p2, p1_missing, sort = true)
+g2 =  GroupedArray(p2, GroupedArray(p1_missing), sort = true)
+@test all(g .=== g2)
+
+
 p3 = [1,2]
 @test_throws DimensionMismatch GroupedArray(p1, p3)
 

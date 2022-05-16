@@ -6,7 +6,9 @@ The package is registered in the [`General`](https://github.com/JuliaRegistries/
 `] add GroupedArrays`.
 
 ## Introduction
-`GroupedArray` returns an `AbstractArray` with integers corresponding to each group (or a `missing` for groups with `missing`).
+`GroupedArray(x::AbstractArray)` returns an `AbstractArray` of the same length as the original array, where each distinct value is encoded by a positive integer.
+
+By default, `GroupedArray` associates `missing` for `missing` values. With `coalesce = true`, missing values are associated a distinct integer.
 
 ```julia
 using GroupedArrays
@@ -19,11 +21,6 @@ g = GroupedArray(p)
 #  1
 #  2
 #   missing
-```
-
-Use the keyword argument `coalesce = true` to consider missing values as distinct
-```julia
-using GroupedArrays
 p = repeat(["a", "b", missing], outer = 2)
 g = GroupedArray(p; coalesce = true)
 # 6-element GroupedArray{Int64, 1}:
@@ -35,7 +32,7 @@ g = GroupedArray(p; coalesce = true)
 #  3
 ```
 
-`GroupedArray` can be used to compute groups across multiple vectors:
+`GroupedArray` can also combine groups defined by multiple vectors:
 ```julia
 p1 = repeat(["a", "b"], outer = 3)
 p2 = repeat(["d", "e"], inner = 3)
@@ -48,11 +45,9 @@ g = GroupedArray(p1, p2)
 #  4
 #  3
 ```
-## Motivation
-GroupedArrays is similar to PooledArray, except that the pool is simply the set of integers from 1 to n where n is the number of groups(`missing` is encoded as 0). This allows for faster lookup in setups where the group value is not meaningful.
-
-## See also
-The algorithm to construct `GroupedArrays` is taken from [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)
+## Relation to other packages
+- `GroupedArray` is similar to `PooledArray`, except that the pool is simply the set of integers from 1 to n where n is the number of groups(`missing` is encoded as 0). This allows for faster lookup in setups where the group value is not meaningful.
+- The algorithm to group multiple vectors is taken from [DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)
 
 
 

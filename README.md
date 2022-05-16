@@ -32,7 +32,7 @@ The package is registered in the [`General`](https://github.com/JuliaRegistries/
   #  3
   ```
 
--`GroupedArray(xs::AbstractArray...)` combine groups defined by multiple vectors:
+- `GroupedArray(xs::AbstractArray...)` combine groups defined by multiple vectors:
   ```julia
   p1 = repeat(["a", "b"], outer = 3)
   p2 = repeat(["d", "e"], inner = 3)

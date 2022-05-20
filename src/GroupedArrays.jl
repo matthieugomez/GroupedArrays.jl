@@ -8,6 +8,11 @@ include("utils.jl")
 """
 GroupedArray{T,N} <: AbstractArray{T,N}
 N-dimensional dense array with elements of type T, where T <: Union{Int, Missing}
+
+GroupedArray has a field ngroups which satisfies the following contract:
+- Right after construction, the set of non missing elements in the GroupedArray is equal to 1:ngroups.
+- Afterwards (ie, after using `setindex!`), non missing elements always remain between 1 and ngroups.
+
 """
 mutable struct GroupedArray{T <: Union{Int, Missing}, N} <: AbstractArray{T, N}
 	groups::Array{Int, N} 
@@ -23,9 +28,8 @@ const GroupedMatrix{T} = GroupedArray{T, 2}
 ##############################################################################
 
 Base.size(g::GroupedArray) = size(g.groups)
-Base.axes(g::GroupedArray) = axes(g.groups)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
-Base.LinearIndices(g::GroupedArray) = axes(g.groups, 1)
+Base.LinearIndices(g::GroupedArray) = LinearIndices(g.groups)
 
 Base.@propagate_inbounds function Base.getindex(g::GroupedArray{Int}, i::Number)
 	@boundscheck checkbounds(g, i)
@@ -58,7 +62,7 @@ end
 
 """
 
-	GroupedArray(args... [; coalesce = false, sort = nothing])
+	GroupedArray(args... [; coalesce = false, sort = true])
 
 Construct a `GroupedArray` taking on distinct values for the groups formed by elements of `args`
 
@@ -67,7 +71,7 @@ Construct a `GroupedArray` taking on distinct values for the groups formed by el
 
 ### Keyword arguments
 * `coalesce::Bool`: should missing values considered as distinct grotups indicators?
-* `sort::Union{Bool, Nothing}`: should the order of the groups be the sort order?
+* `sort::Union{Bool, Nothing}`: should the order of the groups be the sort order? Set to `nothing` for best performance.
 
 ### Examples
 ```julia
@@ -79,7 +83,7 @@ p2 = [1, 1, 1, 2, 2, 2]
 GroupedArray(p1, p2)
 ```
 """
-function GroupedArray(args...; coalesce = false, sort = nothing)
+function GroupedArray(args...; coalesce = false, sort = true)
 	all(x isa AbstractArray for x in args) || throw(DimensionMismatch("arguments are not AbstractArrays"))
 	s = size(first(args)) 
 	all(size(x) == s for x in args) || throw(DimensionMismatch("cannot match array  sizes"))
@@ -144,22 +148,33 @@ Base.convert(::Type{GroupedArray}, a::AbstractArray) = GroupedArray(a)
 ##############################################################################
 
 DataAPI.refarray(g::GroupedArray) = g.groups
-DataAPI.levels(g::GroupedArray) = 1:g.ngroups
 DataAPI.refvalue(g::GroupedArray, ref::Integer) = ref > 0 ? ref : missing
+@inline function DataAPI.levels(g::GroupedArray{T}, skipmissing::Bool = true) where T
+   if T >: Missing && !skipmissing
+      if any(==(0), g.groups)
+         T[1:g.ngroups; missing]
+      else
+         T[1:g.ngroups;]
+      end
+   else
+      1:g.ngroups
+   end
+end
 
 # refpool is such that refpool[refarray[i]] = x
 struct GroupedRefPool{T <: Union{Int, Missing}} <: AbstractVector{T}
 	ngroups::Int
 end
-Base.size(x::GroupedRefPool{T}) where T = (x.ngroups + (T >: Missing),)
+Base.size(x::GroupedRefPool{T}) where T = ((T >: Missing) + x.ngroups,)
 Base.axes(x::GroupedRefPool{T}) where T = ((1-(T >: Missing)):x.ngroups,)
 Base.IndexStyle(::Type{<: GroupedRefPool}) = Base.IndexLinear()
+Base.LinearIndices(x::GroupedRefPool) = axes(x, 1)
+
 @inline function Base.getindex(x::GroupedRefPool{T}, i::Integer) where T
     @boundscheck checkbounds(x, i)
     T >: Missing && i == 0 ? missing : i
 end
 Base.allunique(x::GroupedRefPool) = true
-Base.LinearIndices(x::GroupedRefPool) = axes(x, 1)
 
 DataAPI.refpool(g::GroupedArray{T}) where {T} = GroupedRefPool{T}(g.ngroups)
 # invrefpool is such that invrefpool[refpool[x]] = x. 

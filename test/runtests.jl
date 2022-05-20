@@ -41,11 +41,13 @@ g1 = GroupedArray(p1_missing)
 @test eltype(g1) == Union{Int, Missing}
 @test size(g1) == (10,)
 @test length(g1) == 10
+@test g1.ngroups == 3
 @test g1[1] === missing
-@test g1.groups[1] === 0
+@test g1.groups[1] == 0
 
 g1 = GroupedArray(p1_missing; coalesce = true)
-@test g1[1] === 1
+@test g1.ngroups == 4
+@test g1[1] == 4
 @test eltype(g1) <: Int
 
 
@@ -55,11 +57,11 @@ g = GroupedArray(p1_missing, p2)
 g[3] = missing
 @test ismissing(g[3])
 
-g = GroupedArray(p1_missing, p2, sort = true)
-g2 =  GroupedArray(GroupedArray(p1_missing), p2, sort = true)
+g = GroupedArray(p1_missing, p2)
+g2 =  GroupedArray(GroupedArray(p1_missing), p2)
 @test all(g .=== g2)
 g =  GroupedArray(p2, p1_missing, sort = true)
-g2 =  GroupedArray(p2, GroupedArray(p1_missing), sort = true)
+g2 =  GroupedArray(p2, GroupedArray(p1_missing))
 @test all(g .=== g2)
 
 

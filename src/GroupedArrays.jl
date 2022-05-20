@@ -165,7 +165,7 @@ end
 struct GroupedRefPool{T <: Union{Int, Missing}} <: AbstractVector{T}
 	ngroups::Int
 end
-Base.size(x::GroupedRefPool{T}) where T = (x.ngroups + (T >: Missing),)
+Base.size(x::GroupedRefPool{T}) where T = ((T >: Missing) + x.ngroups,)
 Base.axes(x::GroupedRefPool{T}) where T = ((1-(T >: Missing)):x.ngroups,)
 Base.IndexStyle(::Type{<: GroupedRefPool}) = Base.IndexLinear()
 Base.LinearIndices(x::GroupedRefPool) = axes(x, 1)

@@ -144,7 +144,7 @@ Base.convert(::Type{GroupedArray}, a::AbstractArray) = GroupedArray(a)
 
 DataAPI.refarray(g::GroupedArray) = g.groups
 DataAPI.refvalue(g::GroupedArray, ref::Integer) = ref > 0 ? ref : missing
-@inline DataAPI.levels(g::GroupedArray{T}, skipmissing::Bool = true) where T
+@inline function DataAPI.levels(g::GroupedArray{T}, skipmissing::Bool = true) where T
    if T >: Missing && !skipmissing
       if any(==(0), g.groups)
          T[1:g.ngroups; missing]

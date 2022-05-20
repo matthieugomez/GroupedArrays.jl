@@ -25,7 +25,7 @@ const GroupedMatrix{T} = GroupedArray{T, 2}
 Base.size(g::GroupedArray) = size(g.groups)
 Base.axes(g::GroupedArray) = axes(g.groups)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
-Base.LinearIndices(g::GroupedArray) = axes(g.groups, 1)
+Base.LinearIndices(g::GroupedArray) = LinearIndices(g.groups)
 
 Base.@propagate_inbounds function Base.getindex(g::GroupedArray{Int}, i::Number)
 	@boundscheck checkbounds(g, i)

@@ -9,9 +9,9 @@ include("utils.jl")
 GroupedArray{T,N} <: AbstractArray{T,N}
 N-dimensional dense array with elements of type T, where T <: Union{Int, Missing}
 
-GroupedArray has a field ngroups. 
-Non missing elements of a GroupedArray are between 1 and ngroups.
-Right after construction, the set of non missing elements is exactly equal to 1:ngroups.
+GroupedArray has a field ngroups which satisfies the following contract:
+- Non missing elements of a GroupedArray are always between 1 and ngroups.
+- Right after construction, the set of non missing elements is exactly equal to 1:ngroups.
 """
 mutable struct GroupedArray{T <: Union{Int, Missing}, N} <: AbstractArray{T, N}
 	groups::Array{Int, N} 

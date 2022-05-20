@@ -57,11 +57,11 @@ g = GroupedArray(p1_missing, p2)
 g[3] = missing
 @test ismissing(g[3])
 
-g = GroupedArray(p1_missing, p2, sort = true)
-g2 =  GroupedArray(GroupedArray(p1_missing), p2, sort = true)
+g = GroupedArray(p1_missing, p2)
+g2 =  GroupedArray(GroupedArray(p1_missing), p2)
 @test all(g .=== g2)
 g =  GroupedArray(p2, p1_missing, sort = true)
-g2 =  GroupedArray(p2, GroupedArray(p1_missing), sort = true)
+g2 =  GroupedArray(p2, GroupedArray(p1_missing))
 @test all(g .=== g2)
 
 

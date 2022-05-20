@@ -23,7 +23,6 @@ const GroupedMatrix{T} = GroupedArray{T, 2}
 ##############################################################################
 
 Base.size(g::GroupedArray) = size(g.groups)
-Base.axes(g::GroupedArray) = axes(g.groups)
 Base.IndexStyle(g::GroupedArray) = Base.IndexLinear()
 Base.LinearIndices(g::GroupedArray) = LinearIndices(g.groups)
 

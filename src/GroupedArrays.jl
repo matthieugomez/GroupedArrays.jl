@@ -143,8 +143,18 @@ Base.convert(::Type{GroupedArray}, a::AbstractArray) = GroupedArray(a)
 ##############################################################################
 
 DataAPI.refarray(g::GroupedArray) = g.groups
-DataAPI.levels(g::GroupedArray) = 1:g.ngroups
 DataAPI.refvalue(g::GroupedArray, ref::Integer) = ref > 0 ? ref : missing
+@inline DataAPI.levels(g::GroupedArray{T}, skipmissing::Bool = true) where T
+   if T >: Missing && !skipmissing
+      if any(==(0), g.groups)
+         T[1:g.ngroups; missing]
+      else
+         T[1:g.ngroups;]
+      end
+   else
+      1:g.ngroups
+   end
+end
 
 # refpool is such that refpool[refarray[i]] = x
 struct GroupedRefPool{T <: Union{Int, Missing}} <: AbstractVector{T}

@@ -15,7 +15,7 @@ GroupedArray is an AbstractArray that contains positive integers or missing valu
   ```julia
   using GroupedArrays
   p = repeat(["a", "b", missing], outer = 2)
-  g = GroupedArray(p)
+  GroupedArray(p)
   # 6-element GroupedArray{Int64, 1}:
   #  1
   #  2
@@ -24,7 +24,7 @@ GroupedArray is an AbstractArray that contains positive integers or missing valu
   #  2
   #   missing
   p = repeat(["a", "b", missing], outer = 2)
-  g = GroupedArray(p; coalesce = true)
+  GroupedArray(p; coalesce = true)
   # 6-element GroupedArray{Int64, 1}:
   #  1
   #  2
@@ -32,13 +32,9 @@ GroupedArray is an AbstractArray that contains positive integers or missing valu
   #  1
   #  2
   #  3
-  ```
-
-- `GroupedArray(xs::AbstractArray...)` combine groups defined by multiple vectors:
-  ```julia
   p1 = repeat(["a", "b"], outer = 3)
   p2 = repeat(["d", "e"], inner = 3)
-  g = GroupedArray(p1, p2)
+  GroupedArray(p1, p2)
   # 6-element GroupedArray{Int64, 1}:
   #  1
   #  2

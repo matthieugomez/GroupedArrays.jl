@@ -153,12 +153,13 @@ end
 Base.size(x::GroupedRefPool{T}) where T = (x.ngroups + (T >: Missing),)
 Base.axes(x::GroupedRefPool{T}) where T = ((1-(T >: Missing)):x.ngroups,)
 Base.IndexStyle(::Type{<: GroupedRefPool}) = Base.IndexLinear()
+Base.LinearIndices(x::GroupedRefPool) = axes(x, 1)
+
 @inline function Base.getindex(x::GroupedRefPool{T}, i::Integer) where T
     @boundscheck checkbounds(x, i)
     T >: Missing && i == 0 ? missing : i
 end
 Base.allunique(x::GroupedRefPool) = true
-Base.LinearIndices(x::GroupedRefPool) = axes(x, 1)
 
 DataAPI.refpool(g::GroupedArray{T}) where {T} = GroupedRefPool{T}(g.ngroups)
 # invrefpool is such that invrefpool[refpool[x]] = x. 

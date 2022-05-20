@@ -8,6 +8,10 @@ include("utils.jl")
 """
 GroupedArray{T,N} <: AbstractArray{T,N}
 N-dimensional dense array with elements of type T, where T <: Union{Int, Missing}
+
+GroupedArray has a field ngroups. 
+Non missing elements of a GroupedArray are between 1 and ngroups.
+Right after construction, the set of non missing elements is exactly equal to 1:ngroups.
 """
 mutable struct GroupedArray{T <: Union{Int, Missing}, N} <: AbstractArray{T, N}
 	groups::Array{Int, N} 
@@ -57,7 +61,7 @@ end
 
 """
 
-	GroupedArray(args... [; coalesce = false, sort = nothing])
+	GroupedArray(args... [; coalesce = false, sort = true])
 
 Construct a `GroupedArray` taking on distinct values for the groups formed by elements of `args`
 
@@ -66,7 +70,7 @@ Construct a `GroupedArray` taking on distinct values for the groups formed by el
 
 ### Keyword arguments
 * `coalesce::Bool`: should missing values considered as distinct grotups indicators?
-* `sort::Union{Bool, Nothing}`: should the order of the groups be the sort order?
+* `sort::Union{Bool, Nothing}`: should the order of the groups be the sort order? Set to `nothing` for best performance.
 
 ### Examples
 ```julia
@@ -78,7 +82,7 @@ p2 = [1, 1, 1, 2, 2, 2]
 GroupedArray(p1, p2)
 ```
 """
-function GroupedArray(args...; coalesce = false, sort = nothing)
+function GroupedArray(args...; coalesce = false, sort = true)
 	all(x isa AbstractArray for x in args) || throw(DimensionMismatch("arguments are not AbstractArrays"))
 	s = size(first(args)) 
 	all(size(x) == s for x in args) || throw(DimensionMismatch("cannot match array  sizes"))

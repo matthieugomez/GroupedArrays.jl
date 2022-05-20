@@ -41,11 +41,13 @@ g1 = GroupedArray(p1_missing)
 @test eltype(g1) == Union{Int, Missing}
 @test size(g1) == (10,)
 @test length(g1) == 10
+@test g1.ngroups == 3
 @test g1[1] === missing
 @test g1.groups[1] === 0
 
 g1 = GroupedArray(p1_missing; coalesce = true)
-@test g1[1] === 1
+@test g1[1] == 4
+@test g.ngroups == 4
 @test eltype(g1) <: Int
 
 

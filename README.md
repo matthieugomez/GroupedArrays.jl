@@ -8,8 +8,8 @@ The package is registered in the [`General`](https://github.com/JuliaRegistries/
 ## Introduction
 GroupedArray is an AbstractArray that contains positive integers or missing values.
 
-- `GroupedArray(x::AbstractArray)` returns a `GroupedArray` of the same length as the original array, where each distinct value is encoded by an integer.
-- `GroupedArray(xs...::AbstractArray)` returns a `GroupedArray` where each distinct combination of values is encoded by an integer 
+- `GroupedArray(x::AbstractArray)` returns a `GroupedArray` of the same length as the original array, where each distinct value is encoded by a distinct integer.
+- `GroupedArray(xs...::AbstractArray)` returns a `GroupedArray` where each distinct combination of values is encoded by a distinct integer 
 - By default, `GroupedArray` groups all `missing` values into a distinct `missing` category. With `coalesce = true`, missing values are not treated differently.
 
   ```julia

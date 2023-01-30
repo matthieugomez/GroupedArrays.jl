@@ -7,15 +7,16 @@ The package is registered in the [`General`](https://github.com/JuliaRegistries/
 
 ## Introduction
 GroupedArray is an AbstractArray that contains positive integers or missing values.
+- `GroupedArray(x::AbstractArray)` returns a `GroupedArray` of the same length as the original array, where each distinct value is encoded as a distinct integer.
+- `GroupedArray(xs...::AbstractArray)` returns a `GroupedArray` where each distinct combination of values is encoded as a distinct integer 
+- By default (with `coalesce = false`), `GroupedArray` encodes `missing` values as a distinct `missing` category. With `coalesce = true`, missing values are treated similarly to other values.
 
-- `GroupedArray(x::AbstractArray)` returns a `GroupedArray` of the same length as the original array, where each distinct value is encoded by a distinct integer.
-- `GroupedArray(xs...::AbstractArray)` returns a `GroupedArray` where each distinct combination of values is encoded by a distinct integer 
-- By default, `GroupedArray` groups all `missing` values into a distinct `missing` category. With `coalesce = true`, missing values are not treated differently.
+## Examples
 
   ```julia
   using GroupedArrays
   p = repeat(["a", "b", missing], outer = 2)
-  g = GroupedArray(p)
+  GroupedArray(p)
   # 6-element GroupedArray{Int64, 1}:
   #  1
   #  2
@@ -24,7 +25,7 @@ GroupedArray is an AbstractArray that contains positive integers or missing valu
   #  2
   #   missing
   p = repeat(["a", "b", missing], outer = 2)
-  g = GroupedArray(p; coalesce = true)
+  GroupedArray(p; coalesce = true)
   # 6-element GroupedArray{Int64, 1}:
   #  1
   #  2
@@ -32,13 +33,9 @@ GroupedArray is an AbstractArray that contains positive integers or missing valu
   #  1
   #  2
   #  3
-  ```
-
-- `GroupedArray(xs::AbstractArray...)` combine groups defined by multiple vectors:
-  ```julia
   p1 = repeat(["a", "b"], outer = 3)
   p2 = repeat(["d", "e"], inner = 3)
-  g = GroupedArray(p1, p2)
+  GroupedArray(p1, p2)
   # 6-element GroupedArray{Int64, 1}:
   #  1
   #  2

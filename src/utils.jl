@@ -8,7 +8,7 @@ function hashrows_col!(h::Vector{UInt},
                        v::AbstractVector{T},
                        rp::Nothing,
                        firstcol::Bool) where T
-    @spawn_for_chunks 1_000_000 for i in eachindex(h)
+    @spawn_for_chunks 100_000 for i in eachindex(h)
         @inbounds begin
             el = v[i]
             h[i] = hash(el, h[i])
@@ -36,18 +36,18 @@ function hashrows_col!(h::Vector{UInt},
         fira = firstindex(ra)
 
         hashes = Vector{UInt}(undef, length(rp))
-        @spawn_for_chunks 1_000_000 for i in eachindex(hashes)
+        @spawn_for_chunks 100_000 for i in eachindex(hashes)
             @inbounds hashes[i] = hash(rp[i+firp-1])
         end
 
         # here we rely on the fact that `DataAPI.refpool` has a continuous
         # block of indices
-        @spawn_for_chunks 1_000_000 for i in eachindex(h)
+        @spawn_for_chunks 100_000 for i in eachindex(h)
             @inbounds ref = ra[i+fira-1]
             @inbounds h[i] = hashes[ref+1-firp]
         end
     else
-        @spawn_for_chunks 1_000_000 for i in eachindex(h, v)
+        @spawn_for_chunks 100_000 for i in eachindex(h, v)
             @inbounds h[i] = hash(v[i], h[i])
         end
     end
@@ -61,7 +61,8 @@ end
 # Calculate the vector of `df` rows hash values.
 function hashrows(cols::Tuple{Vararg{AbstractVector}}, skipmissing::Bool)
     len = length(cols[1])
-    rhashes = zeros(UInt, len)
+    ref_val = @static Base.VERSION >= v"1.13.0-DEV" ? Base.HASH_SEED : UInt(0)
+    rhashes = fill(ref_val, len)
     missings = fill(false, skipmissing ? len : 0)
     for (i, col) in enumerate(cols)
         rp = DataAPI.refpool(col)
@@ -159,7 +160,7 @@ function refpool_and_array(x::AbstractArray)
         else
             minval, maxval = extrema(x)
         end
-        ngroups = big(maxval) - big(minval) + 1
+        ngroups = BigInt(maxval) - BigInt(minval) + 1
         # Threshold chosen with the same rationale as the row_group_slots refpool method:
         # refpool approach is faster but we should not allocate too much memory either
         # We also have to avoid overflow, including with ngroups + 1 for missing values
@@ -181,14 +182,22 @@ end
 # 2) vector of row hashes (may be empty if hash=Val(false))
 # 3) slot array for a hash map, non-zero values are
 #    the indices of the first row in a group
+#    (returned only if hashes are generated)
 # 4) whether groups are already sorted
 # Optional `groups` vector is set to the group indices of each row (starting at 1)
 # With skipmissing=true, rows with missing values are attributed index 0.
-function row_group_slots(cols::Tuple{Vararg{AbstractVector}},
-                         hash::Val,
-                         groups::Union{Vector{Int}, Nothing},
-                         skipmissing::Bool,
-                         sort::Union{Bool, Nothing})::Tuple{Int, Vector{UInt}, Vector{Int}, Bool}
+#
+# Also the last argument is `compress`. If it is `false` then groups are not
+# compressed to form a continuous sequence. Normally `true` should be passed
+# as this ensures that returned `ngroups` indeed indicates the number of groups
+# but e.g. in `nonunique` we do not use this information so compressing
+# can be skipped by passing `compress=false`
+function row_group_slots!(cols::Tuple{Vararg{AbstractVector}},
+                          hash::Val,
+                          groups::Union{Vector{Int}, Nothing},
+                          skipmissing::Bool,
+                          sort::Union{Bool, Nothing},
+                          compress::Bool)::Tuple{Int, Vector{UInt}, Vector{Int}, Bool}
     rpa = refpool_and_array.(cols)
     if sort === false
         refpools = nothing
@@ -197,17 +206,19 @@ function row_group_slots(cols::Tuple{Vararg{AbstractVector}},
         refpools = first.(rpa)
         refarrays = last.(rpa)
     end
-    row_group_slots(cols, refpools, refarrays, hash, groups, skipmissing, sort === true)
+    row_group_slots!(cols, refpools, refarrays, hash, groups, skipmissing,
+                     sort === true, compress)
 end
 
-# Generic fallback method based on open adressing hash table
-function row_group_slots(cols::Tuple{Vararg{AbstractVector}},
-                         refpools::Any,  # Ignored
-                         refarrays::Any, # Ignored
-                         hash::Val,
-                         groups::Union{Vector{Int}, Nothing},
-                         skipmissing::Bool,
-                         sort::Bool)::Tuple{Int, Vector{UInt}, Vector{Int}, Bool}
+# Generic fallback method based on open addressing hash table
+function row_group_slots!(cols::Tuple{Vararg{AbstractVector}},
+                          refpools::Any,  # Ignored
+                          refarrays::Any, # Ignored
+                          hash::Val,
+                          groups::Union{Vector{Int}, Nothing},
+                          skipmissing::Bool,
+                          sort::Bool,
+                          compress::Bool)::Tuple{Int, Vector{UInt}, Vector{Int}, Bool}
     @assert groups === nothing || length(groups) == length(cols[1])
     rhashes, missings = hashrows(cols, skipmissing)
     # inspired by Dict code from base cf. https://github.com/JuliaData/DataTables.jl/pull/17#discussion_r102481481
@@ -254,19 +265,21 @@ function row_group_slots(cols::Tuple{Vararg{AbstractVector}},
 end
 
 # Optimized method for arrays for which DataAPI.refpool is defined and returns an AbstractVector
-function row_group_slots(cols::NTuple{N, AbstractVector},
-                         refpools::NTuple{N, AbstractVector},
-                         refarrays::NTuple{N,
-                             Union{AbstractVector{<:Real},
-                                   Missings.EachReplaceMissing{
-                                       <:AbstractVector{<:Union{Real, Missing}}}}},
-                         hash::Val{false},
-                         groups::Vector{Int},
-                         skipmissing::Bool,
-                         sort::Bool)::Tuple{Int, Vector{UInt}, Vector{Int}, Bool} where N
+function row_group_slots!(cols::NTuple{N, AbstractVector},
+                          refpools::NTuple{N, AbstractVector},
+                          refarrays::NTuple{N,
+                              Union{AbstractVector{<:Real},
+                                    Missings.EachReplaceMissing{
+                                        <:AbstractVector{<:Union{Real, Missing}}}}},
+                          hash::Val{false},
+                          groups::Vector{Int},
+                          skipmissing::Bool,
+                          sort::Bool,
+                          compress::Bool)::Tuple{Int, Vector{UInt}, Vector{Int}, Bool} where N
     # Computing neither hashes nor groups isn't very useful,
     # and this method needs to allocate a groups vector anyway
     @assert all(col -> length(col) == length(groups), cols)
+
     missinginds = map(refpools) do refpool
         eltype(refpool) >: Missing ?
             something(findfirst(ismissing, refpool), lastindex(refpool)+1) : lastindex(refpool)+1
@@ -298,10 +311,10 @@ function row_group_slots(cols::NTuple{N, AbstractVector},
         newcols = (skipmissing && any(refpool -> eltype(refpool) >: Missing, refpools)) ||
                   !(refarrays isa NTuple{<:Any, AbstractVector}) ||
                   sort ? cols : refarrays
-        return invoke(row_group_slots,
+        return invoke(row_group_slots!,
                       Tuple{Tuple{Vararg{AbstractVector}}, Any, Any, Val,
-                            Union{Vector{Int}, Nothing}, Bool, Bool},
-                      newcols, refpools, refarrays, hash, groups, skipmissing, sort)
+                            Union{Vector{Int}, Nothing}, Bool, Bool, Bool},
+                      newcols, refpools, refarrays, hash, groups, skipmissing, sort, compress)
     end
 
     strides = (cumprod(collect(reverse(ngroupstup)))[end-1:-1:1]..., 1)::NTuple{N, Int}
@@ -323,10 +336,17 @@ function row_group_slots(cols::NTuple{N, AbstractVector},
 
     lg = length(groups)
     nt = Threads.nthreads()
-    # disable threading if we are processing a small data frame or number of groups is large
-    if lg < 1_000_000 || ngroups > lg * (0.5 - 1 / (2 * nt)) / (2 * nt)
-       nt = 1
+    # make sure we are processing at least 100_000 rows per task if we do threading
+    if lg < 100_000 * nt
+       nt = max(1, lg ÷ 100_000)
     end
+    # if there are few rows per group limit the number of threads used
+    if ngroups == 0
+        nt = 1
+    else
+        nt = clamp(round(Int, (lg / 4) / ngroups - 2), 1, nt)
+    end
+
     seen = fill(false, ngroups)
     seen_vec = Vector{Vector{Bool}}(undef, nt)
     seen_vec[1] = seen
@@ -430,7 +450,9 @@ function row_group_slots(cols::NTuple{N, AbstractVector},
     # If some groups are unused, compress group indices to drop them
     # sum(seen) is faster than all(seen) when not short-circuiting,
     # and short-circuit would only happen in the slower case anyway
-    if sum(seen) < length(seen)
+    #
+    # This process is not needed if row_group_slots! is called with compress=false
+    if compress && sum(seen) < length(seen)
         oldngroups = ngroups
         remap = zeros(Int, ngroups)
         ngroups = 0
@@ -446,4 +468,43 @@ function row_group_slots(cols::NTuple{N, AbstractVector},
         @assert oldngroups != ngroups
     end
     return ngroups, UInt[], Int[], sort
+end
+
+
+# Return a 3-tuple of a permutation that sorts rows into groups,
+# and the positions of the first and last rows in each group in that permutation
+# `groups` must contain group indices in 0:ngroups
+# Rows with group index 0 are skipped (used when skipmissing=true)
+# Partly uses the code of Wes McKinney's groupsort_indexer in pandas (file: src/groupby.pyx).
+function compute_indices(groups::AbstractVector{<:Integer}, ngroups::Integer)
+    # count elements in each group
+    stops = zeros(Int, ngroups+1)
+    @inbounds for gix in groups
+        stops[gix+1] += 1
+    end
+
+    # group start positions in a sorted table
+    starts = Vector{Int}(undef, ngroups+1)
+    if length(starts) > 0
+        starts[1] = 1
+        @inbounds for i in 1:ngroups
+            starts[i+1] = starts[i] + stops[i]
+        end
+    end
+
+    # define row permutation that sorts them into groups
+    rperm = Vector{Int}(undef, length(groups))
+    copyto!(stops, starts)
+    @inbounds for (i, gix) in enumerate(groups)
+        rperm[stops[gix+1]] = i
+        stops[gix+1] += 1
+    end
+    stops .-= 1
+
+    # When skipmissing=true was used, group 0 corresponds to missings to drop
+    # Otherwise it's empty
+    popfirst!(starts)
+    popfirst!(stops)
+
+    return rperm, starts, stops
 end

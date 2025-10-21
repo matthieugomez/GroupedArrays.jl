@@ -1,22 +1,6 @@
 # This code is taken from DataFrames.jl/src/other/utils.jl
 
-if VERSION >= v"1.3"
-    using Base.Threads: @spawn
-else
-    # This is the definition of @async in Base
-    macro spawn(expr)
-        thunk = esc(:(()->($expr)))
-        var = esc(Base.sync_varname)
-        quote
-            local task = Task($thunk)
-            if $(Expr(:isdefined, var))
-                push!($var, task)
-            end
-            schedule(task)
-        end
-    end
-end
-
+using Base.Threads: @spawn
 
 # Compute chunks of indices, each with at least `basesize` entries
 # This method ensures balanced sizes by avoiding a small last chunk
@@ -36,51 +20,34 @@ function split_to_chunks(len::Integer, np::Integer)
     return (Int(1 + ((i - 1) * len′) ÷ np):Int((i * len′) ÷ np) for i in 1:np)
 end
 
-if VERSION >= v"1.4"
-    function _spawn_for_chunks_helper(iter, lbody, basesize)
-        lidx = iter.args[1]
-        range = iter.args[2]
-        quote
-            let x = $(esc(range)), basesize = $(esc(basesize))
-                @assert firstindex(x) == 1
+function _spawn_for_chunks_helper(iter, lbody, basesize)
+    lidx = iter.args[1]
+    range = iter.args[2]
+    quote
+        let x = $(esc(range)), basesize = $(esc(basesize))
+            @assert firstindex(x) == 1
 
-                nt = Threads.nthreads()
-                len = length(x)
-                if nt > 1 && len > basesize
-                    tasks = [Threads.@spawn begin
-                                 for i in p
-                                     local $(esc(lidx)) = @inbounds x[i]
-                                     $(esc(lbody))
-                                 end
+            nt = Threads.nthreads()
+            len = length(x)
+            if nt > 1 && len > basesize
+                tasks = [@spawn begin
+                             for i in p
+                                 local $(esc(lidx)) = @inbounds x[i]
+                                 $(esc(lbody))
                              end
-                             for p in split_indices(len, basesize)]
-                    foreach(wait, tasks)
-                else
-                    for i in eachindex(x)
-                        local $(esc(lidx)) = @inbounds x[i]
-                        $(esc(lbody))
-                    end
-                end
-            end
-            nothing
-        end
-    end
-else
-    function _spawn_for_chunks_helper(iter, lbody, basesize)
-        lidx = iter.args[1]
-        range = iter.args[2]
-        quote
-            let x = $(esc(range))
+                         end
+                         for p in split_indices(len, basesize)]
+                foreach(wait, tasks)
+            else
                 for i in eachindex(x)
                     local $(esc(lidx)) = @inbounds x[i]
                     $(esc(lbody))
                 end
             end
-            nothing
         end
+        nothing
     end
 end
-
 """
     @spawn_for_chunks basesize for i in range ... end
 Parallelize a `for` loop by spawning separate tasks

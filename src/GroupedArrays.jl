@@ -202,6 +202,8 @@ end
 @inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= v <= x.ngroups ? i : default
 DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroups)
 
+include("precompile.jl")
+_precompile_()
 
 export GroupedArray, GroupedVector, GroupedMatrix
 end # module

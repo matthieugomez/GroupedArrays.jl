@@ -2,6 +2,8 @@ module GroupedArrays
 using Missings
 using DataAPI
 using Base.Threads
+using PrecompileTools
+
 include("spawn.jl")
 include("utils.jl")
 
@@ -204,6 +206,13 @@ DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroup
 
 include("precompile.jl")
 _precompile_()
+
+@compile_workload begin
+    p1 = [1, 2, 3, 2]
+	p2 = [1, 1, 2, 2]
+    GroupedArray(p1)
+	GroupedArray(p1, p2)
+end
 
 export GroupedArray, GroupedVector, GroupedMatrix
 end # module

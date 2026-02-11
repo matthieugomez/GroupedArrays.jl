@@ -212,7 +212,7 @@ _precompile_()
 	p2 = [1, 1, 2, 2]
     GroupedArray(p1)
 	GroupedArray(p1, p2)
-	p3 = ["a", "b", "c", c"]
+	p3 = ["a", "b", "c", "c"]
 	GroupedArray(p1, p3)
 end
 

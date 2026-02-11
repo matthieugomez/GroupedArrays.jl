@@ -204,9 +204,6 @@ end
 @inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= v <= x.ngroups ? i : default
 DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroups)
 
-include("precompile.jl")
-_precompile_()
-
 @compile_workload begin
     p1 = [1, 2, 3, 2]
 	p2 = [1, 1, 2, 2]

@@ -2,6 +2,8 @@ module GroupedArrays
 using Missings
 using DataAPI
 using Base.Threads
+using PrecompileTools
+
 include("spawn.jl")
 include("utils.jl")
 
@@ -70,7 +72,7 @@ Construct a `GroupedArray` taking on distinct values for the groups formed by el
 * `args...`: `AbstractArrays` of same sizes.
 
 ### Keyword arguments
-* `coalesce::Bool`: should missing values considered as distinct grotups indicators?
+* `coalesce::Bool`: should missing values be considered as distinct group indicators?
 * `sort::Union{Bool, Nothing}`: should the order of the groups be the sort order? Set to `nothing` for best performance.
 
 ### Examples
@@ -103,7 +105,6 @@ function GroupedArray(args...; coalesce = false, sort = true)
 end
 
 # Find index of representative row for each group
-# now in fillfirst!
 function find_index(g::GroupedArray)
 	groups, ngroups = g.groups, g.ngroups
 	idx = Vector{Int}(undef, ngroups)
@@ -132,7 +133,7 @@ function Base.convert(::Type{GroupedArray{Union{Int, Missing},N}}, g::GroupedArr
     return GroupedArray{Union{Int, Missing},N}(g.groups, g.ngroups)
 end
 function Base.convert(::Type{GroupedArray{Int, N}}, g::GroupedArray{Union{Int, Missing}, N}) where {N}
-	@assert all(x > 0 for x in g.groups)
+	all(x > 0 for x in g.groups) || throw(InexactError(:convert, GroupedArray{Int,N}, g))
     return GroupedArray{Int,N}(g.groups, g.ngroups)
 end
 
@@ -191,17 +192,32 @@ end
 @inline Base.haskey(x::GroupedInvRefPool{T}, ::Missing) where {T} = T >: Missing
 @inline Base.haskey(x::GroupedInvRefPool, v::Integer) = 1 <= v <= x.ngroups
 @inline function Base.getindex(x::GroupedInvRefPool{T}, ::Missing) where {T}
-	@boundscheck T >: Missing
+	@boundscheck T >: Missing || throw(KeyError(missing))
 	0
 end
 @inline function Base.getindex(x::GroupedInvRefPool, i::Integer)
-	@boundscheck 1 <= i <= x.ngroups
+	@boundscheck 1 <= i <= x.ngroups || throw(KeyError(i))
 	i
 end
 @inline Base.get(x::GroupedInvRefPool{T}, ::Missing, default) where {T} = T >: Missing ? 0 : default
-@inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= v <= x.ngroups ? i : default
+@inline Base.get(x::GroupedInvRefPool, i::Integer, default) = 1 <= i <= x.ngroups ? i : default
 DataAPI.invrefpool(g::GroupedArray{T}) where {T} = GroupedInvRefPool{T}(g.ngroups)
 
+@compile_workload begin
+    p1 = [1, 2, 3, 2]
+    p2 = [1, 1, 2, 2]
+    GroupedArray(p1)
+    GroupedArray(p1; sort = nothing)
+    GroupedArray(p1, p2)
+    GroupedArray(p1, p2; sort = nothing)
+    p3 = ["a", "b", "c", "c"]
+    GroupedArray(p1, p3)
+    p4 = Union{Int,Missing}[1, 2, missing, 2]
+    GroupedArray(p4)
+    GroupedArray(p4; coalesce = true)
+    p5 = Union{String,Missing}["a", "b", missing, "c"]
+    GroupedArray(p5)
+end
 
 export GroupedArray, GroupedVector, GroupedMatrix
 end # module

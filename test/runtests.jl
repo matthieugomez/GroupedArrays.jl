@@ -112,6 +112,35 @@ invrefpools = DataAPI.invrefpool(g)
 g = GroupedArray([missing, missing, missing])
 @test all(ismissing(x) for x in g)
 
+# sort=nothing and sort=false
+g_sort = GroupedArray(p1_missing; sort = true)
+g_nosort = GroupedArray(p1_missing; sort = nothing)
+g_false = GroupedArray(p1_missing; sort = false)
+@test g_nosort.ngroups == g_sort.ngroups
+@test g_false.ngroups == g_sort.ngroups
 
+# empty arrays
+g = GroupedArray(Int[])
+@test length(g) == 0
+@test g.ngroups == 0
+
+# convert methods
+g = GroupedArray([1, 2, 3, 1])
+g_missing = convert(GroupedArray{Union{Int, Missing}, 1}, g)
+@test eltype(g_missing) == Union{Int, Missing}
+@test all(g .== g_missing)
+g_back = convert(GroupedArray{Int, 1}, g_missing)
+@test eltype(g_back) == Int
+@test all(g .== g_back)
+# convert with missing should error
+g_with_missing = GroupedArray([1, missing, 2])
+@test_throws InexactError convert(GroupedArray{Int, 1}, g_with_missing)
+
+# Base.get for GroupedInvRefPool with Integer
+g = GroupedArray(PooledArray(p1_missing), p2)
+invrefpools = DataAPI.invrefpool(g)
+@test get(invrefpools, 1, -1) == 1
+@test get(invrefpools, g.ngroups, -1) == g.ngroups
+@test get(invrefpools, g.ngroups + 1, -1) == -1
 
 
